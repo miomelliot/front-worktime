@@ -124,8 +124,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           icon: Icon(_obscure
                               ? Icons.visibility_off_outlined
                               : Icons.visibility_outlined),
-                          onPressed: () =>
-                              setState(() => _obscure = !_obscure),
+                          onPressed: () => setState(() => _obscure = !_obscure),
                         ),
                       ),
                       validator: (v) {

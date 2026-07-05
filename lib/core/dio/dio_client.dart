@@ -29,7 +29,8 @@ final dioProvider = Provider<Dio>((ref) {
       responseType: ResponseType.json,
       // The backend rejects unknown JSON fields, but that's a request concern;
       // for responses we accept and let models decode what they need.
-      validateStatus: (status) => status != null && status >= 200 && status < 300,
+      validateStatus: (status) =>
+          status != null && status >= 200 && status < 300,
     ),
   );
 

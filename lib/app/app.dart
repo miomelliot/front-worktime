@@ -4,15 +4,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'router.dart';
 import 'theme.dart';
 
-/// Root widget of the application.
+/// Корневой виджет приложения.
 ///
-/// Wires the [GoRouter] (exposed via [routerProvider]) into a
-/// [MaterialApp.router] with a Material 3 light/dark theme. The router is
-/// responsible for auth-based redirects, so this widget stays intentionally
-/// thin.
+/// Подключает [GoRouter] из [routerProvider] к [MaterialApp.router] и задает
+/// Material 3 темы. Редиректы по авторизации живут в роутере, поэтому виджет
+/// остается тонкой оболочкой.
 class WorktimeApp extends ConsumerWidget {
+  /// Создает корневое приложение Worktime.
   const WorktimeApp({super.key});
 
+  /// Собирает [MaterialApp.router] с темой и конфигурацией роутера.
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);

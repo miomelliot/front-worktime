@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/app.dart';
 
+/// Точка входа приложения: поднимает Flutter binding и Riverpod scope.
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 

@@ -3,22 +3,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/auth/domain/auth_state.dart';
+import '../features/auth/domain/user_profile.dart';
 import '../features/auth/presentation/auth_controller.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
+import '../features/worktime/presentation/worktime_screens.dart';
+import '../core/widgets/worktime_shell.dart';
 
-/// App router.
+/// Основной роутер приложения.
 ///
-/// The router reacts to [authControllerProvider] via a [ChangeNotifier] bridge
-/// ([_RouterNotifier]) and enforces auth-based access with `redirect`:
+/// Реагирует на [authControllerProvider] через мост [ChangeNotifier]
+/// ([_RouterNotifier]) и применяет доступ по авторизации через `redirect`:
 ///
-/// - While [AuthState.unknown] (restoring a session) it shows a splash and
-///   holds navigation.
-/// - Unauthenticated users are sent to `/login` (and may reach `/register`).
-/// - Authenticated users on an auth route are sent to `/` (home).
+/// - пока [AuthState.unknown] восстанавливает сессию, оставляет пользователя
+///   на splash-экране;
+/// - неавторизованных пользователей отправляет на `/login`;
+/// - авторизованных пользователей уводит с auth-экранов на `/`.
 ///
-/// Feature routes (time tracking, calendar, org status, admin, ...) are added
-/// under the home shell in later iterations. For now `/` is a placeholder.
+/// Маршруты фич добавляются отдельными итерациями под домашнюю оболочку.
 final routerProvider = Provider<GoRouter>((ref) {
   final notifier = _RouterNotifier(ref);
 
@@ -27,10 +29,73 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: notifier,
     redirect: notifier.redirect,
     routes: [
-      GoRoute(
-        path: '/',
-        name: 'home',
-        builder: (context, state) => const _HomePlaceholderScreen(),
+      ShellRoute(
+        builder: (context, state, child) {
+          final authState = ref.watch(authControllerProvider);
+          if (authState.isUnknown || authState.userOrNull == null) {
+            return const _SplashScreen();
+          }
+          return WorktimeShell(
+            user: authState.userOrNull!,
+            child: child,
+          );
+        },
+        routes: [
+          GoRoute(
+            path: '/',
+            name: 'home',
+            builder: (context, state) => const DashboardScreen(),
+          ),
+          GoRoute(
+            path: '/time',
+            name: 'time',
+            builder: (context, state) => const TimeTrackerScreen(),
+          ),
+          GoRoute(
+            path: '/calendar',
+            name: 'calendar',
+            builder: (context, state) => const CalendarScreen(),
+          ),
+          GoRoute(
+            path: '/organization',
+            name: 'organization',
+            builder: (context, state) => const OrganizationStatusScreen(),
+          ),
+          GoRoute(
+            path: '/profile',
+            name: 'profile',
+            builder: (context, state) => const ProfileScreen(),
+          ),
+          GoRoute(
+            path: '/admin',
+            redirect: (context, state) => '/admin/users',
+          ),
+          GoRoute(
+            path: '/admin/users',
+            name: 'admin-users',
+            builder: (context, state) => const AdminUsersScreen(),
+          ),
+          GoRoute(
+            path: '/admin/departments',
+            name: 'admin-departments',
+            builder: (context, state) => const AdminDepartmentsScreen(),
+          ),
+          GoRoute(
+            path: '/admin/schedules',
+            name: 'admin-schedules',
+            builder: (context, state) => const AdminSchedulesScreen(),
+          ),
+          GoRoute(
+            path: '/admin/absences',
+            name: 'admin-absences',
+            builder: (context, state) => const AdminAbsencesScreen(),
+          ),
+          GoRoute(
+            path: '/admin/corrections',
+            name: 'admin-corrections',
+            builder: (context, state) => const AdminCorrectionsScreen(),
+          ),
+        ],
       ),
       GoRoute(
         path: LoginScreen.routePath,
@@ -46,8 +111,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-/// Bridges Riverpod's [authControllerProvider] to go_router's
-/// [Listenable]-based refresh, and hosts the redirect logic.
+/// Связывает [authControllerProvider] с [Listenable]-обновлением go_router.
 class _RouterNotifier extends ChangeNotifier {
   _RouterNotifier(this._ref) {
     _ref.listen<AuthState>(
@@ -58,17 +122,19 @@ class _RouterNotifier extends ChangeNotifier {
 
   final Ref _ref;
 
+  /// Маршруты, доступные без bearer-токена.
   static const _authRoutes = {
     LoginScreen.routePath,
     RegisterScreen.routePath,
   };
 
+  /// Возвращает целевой маршрут для auth-редиректа или `null`.
   String? redirect(BuildContext context, GoRouterState state) {
     final authState = _ref.read(authControllerProvider);
-    final location = state.matchedLocation;
+    final location = state.uri.path;
     final onAuthRoute = _authRoutes.contains(location);
 
-    // Still restoring the session: keep showing the splash at `/`.
+    // Пока сессия восстанавливается, держим пользователя на `/`.
     if (authState.isUnknown) {
       return location == '/' ? null : '/';
     }
@@ -76,74 +142,31 @@ class _RouterNotifier extends ChangeNotifier {
     final isAuthed = authState.isAuthenticated;
 
     if (!isAuthed) {
-      // Unauthenticated users may only be on an auth route.
+      // Неавторизованный пользователь может быть только на auth-маршруте.
       return onAuthRoute ? null : LoginScreen.routePath;
     }
 
-    // Authenticated users should not sit on an auth route.
+    // Авторизованный пользователь не должен оставаться на auth-маршруте.
     if (onAuthRoute) return '/';
+
+    final user = authState.userOrNull;
+    if (location.startsWith('/admin') && user?.isAdmin != true) {
+      return '/';
+    }
+    if (location == '/organization' && user?.canViewOrgDashboards != true) {
+      return '/';
+    }
     return null;
   }
 }
 
-/// Temporary landing screen for authenticated users.
-///
-/// Replaced by the real dashboard shell in a later iteration. Also renders the
-/// splash while the session is being restored (AuthState.unknown).
-class _HomePlaceholderScreen extends ConsumerWidget {
-  const _HomePlaceholderScreen();
+class _SplashScreen extends StatelessWidget {
+  const _SplashScreen();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authControllerProvider);
-
-    if (authState.isUnknown) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    final user = authState.userOrNull;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Worktime'),
-        actions: [
-          IconButton(
-            tooltip: 'Sign out',
-            icon: const Icon(Icons.logout),
-            onPressed: () =>
-                ref.read(authControllerProvider.notifier).logout(),
-          ),
-        ],
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.check_circle_outline, size: 48),
-              const SizedBox(height: 16),
-              Text(
-                user == null
-                    ? 'Signed in'
-                    : 'Signed in as ${user.fullName}',
-                style: Theme.of(context).textTheme.titleLarge,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Feature screens (dashboard, time tracker, calendar, '
-                'organization status, profile, admin) are added in the next '
-                'iterations.',
-                style: Theme.of(context).textTheme.bodyMedium,
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
     );
   }
 }

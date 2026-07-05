@@ -1,33 +1,35 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Static application configuration.
+/// Статическая конфигурация приложения.
 ///
-/// Values are supplied at build/run time via `--dart-define` so the same
-/// codebase can target different backends without code changes, e.g.:
+/// Значения передаются при сборке/запуске через `--dart-define`, чтобы один
+/// код мог работать с разными backend-окружениями:
 ///
 /// ```
 /// flutter run --dart-define=API_BASE_URL=https://api.example.com
 /// ```
 class AppConfig {
+  /// Создает конфигурацию с базовым URL API.
   const AppConfig({
     required this.apiBaseUrl,
   });
 
-  /// Base URL including the API version prefix.
+  /// Базовый URL вместе с префиксом версии API.
   ///
-  /// The backend serves everything under `/api/v1`, so all endpoint paths in
-  /// the data layer are expressed relative to this (e.g. `/auth/login`).
+  /// Backend обслуживает API под `/api/v1`, поэтому data layer использует
+  /// относительные пути вроде `/auth/login`.
   final String apiBaseUrl;
 
-  static const String _defaultBaseUrl =
-      String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:8080/api/v1');
+  static const String _defaultBaseUrl = String.fromEnvironment('API_BASE_URL',
+      defaultValue: 'http://localhost:8080/api/v1');
 
+  /// Читает конфигурацию из compile-time environment.
   factory AppConfig.fromEnvironment() {
     return const AppConfig(apiBaseUrl: _defaultBaseUrl);
   }
 }
 
-/// Provides the resolved [AppConfig] to the rest of the app.
+/// Предоставляет разрешенную [AppConfig] всему приложению.
 final appConfigProvider = Provider<AppConfig>((ref) {
   return AppConfig.fromEnvironment();
 });
