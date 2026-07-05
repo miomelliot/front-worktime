@@ -5,7 +5,6 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../shared/mock/mock_users.dart';
 import '../../../shared/mock/mock_workday.dart';
 import '../../../shared/theme/app_colors.dart';
-import '../../../shared/theme/app_radius.dart';
 import '../../../shared/theme/app_spacing.dart';
 import '../../../shared/ui/shared_ui.dart';
 import '../../auth/application/auth_controller.dart';
@@ -41,9 +40,8 @@ class TodayScreen extends ConsumerWidget {
                   name: _firstName(user?.name ?? 'Мария'),
                   date: _formatRussianDate(DateTime.now()),
                 ),
-                const SizedBox(height: AppSpacing.lg),
-                _TopDashboardGrid(
-                  wide: wide,
+                const SizedBox(height: AppSpacing.xl),
+                _HeroTimerCard(
                   session: session,
                   expected: expected,
                   onStart: controller.start,
@@ -52,11 +50,10 @@ class TodayScreen extends ConsumerWidget {
                   onStop: controller.stop,
                 ),
                 const SizedBox(height: AppSpacing.lg),
-                _MiddleGrid(
-                  wide: wide,
-                  session: session,
-                ),
-                const SizedBox(height: AppSpacing.lg),
+                _StatsRow(wide: wide),
+                const SizedBox(height: AppSpacing.xl),
+                _MiddleGrid(wide: wide, session: session),
+                const SizedBox(height: AppSpacing.xl),
                 const _DepartmentCard(),
               ],
             );
@@ -75,124 +72,34 @@ class _GreetingHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = ShadTheme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           '${_dayPartGreeting()}, $name',
-          style: const TextStyle(
-            fontSize: 22,
+          style: TextStyle(
+            fontSize: 24,
             height: 1.1,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.3,
+            color: colors.foreground,
           ),
         ),
         const SizedBox(height: AppSpacing.xs),
         Text(
           date,
-          style: const TextStyle(fontSize: 14, color: AppColors.textMuted),
+          style: TextStyle(fontSize: 14, color: colors.mutedForeground),
         ),
       ],
     );
   }
 }
 
-class _TopDashboardGrid extends StatelessWidget {
-  const _TopDashboardGrid({
-    required this.wide,
-    required this.session,
-    required this.expected,
-    required this.onStart,
-    required this.onPause,
-    required this.onResume,
-    required this.onStop,
-  });
-
-  final bool wide;
-  final WorkSession session;
-  final Duration expected;
-  final VoidCallback onStart;
-  final VoidCallback onPause;
-  final VoidCallback onResume;
-  final VoidCallback onStop;
-
-  @override
-  Widget build(BuildContext context) {
-    final todayCard = _TodayTimerCard(
-      session: session,
-      expected: expected,
-      onStart: onStart,
-      onPause: onPause,
-      onResume: onResume,
-      onStop: onStop,
-    );
-    // Spacer-based bottom alignment needs a bounded height, which only the
-    // wide layout provides (via IntrinsicHeight). The narrow layout stacks
-    // cards inside an unbounded-height scroll view, so it falls back to a
-    // fixed gap instead.
-    final weekCard = _MetricPanel(
-      icon: LucideIcons.rotateCcw,
-      iconColor: const Color(0xff1f7cae),
-      title: 'За неделю',
-      value: '36 ч 08 мин',
-      suffix: 'из 40 ч',
-      alignValueBottom: wide,
-    );
-    final daysCard = _MetricPanel(
-      icon: LucideIcons.calendarCheck,
-      iconColor: AppColors.statusWorkingText,
-      title: 'Рабочих дней',
-      value: '18',
-      suffix: 'в этом месяце',
-      alignValueBottom: wide,
-    );
-    const violationsCard = _MetricPanel(
-      icon: LucideIcons.circle,
-      iconColor: AppColors.statusPausedText,
-      title: 'Мои нарушения',
-      value: '0',
-      suffix: 'открыто',
-      compact: true,
-    );
-
-    if (!wide) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          todayCard,
-          const SizedBox(height: AppSpacing.lg),
-          weekCard,
-          const SizedBox(height: AppSpacing.lg),
-          daysCard,
-          const SizedBox(height: AppSpacing.lg),
-          violationsCard,
-        ],
-      );
-    }
-
-    return Column(
-      children: [
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(flex: 6, child: todayCard),
-              const SizedBox(width: AppSpacing.lg),
-              Expanded(flex: 4, child: weekCard),
-              const SizedBox(width: AppSpacing.lg),
-              Expanded(flex: 4, child: daysCard),
-              const SizedBox(width: AppSpacing.lg),
-              const Expanded(flex: 4, child: violationsCard),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _TodayTimerCard extends StatelessWidget {
-  const _TodayTimerCard({
+/// The card the whole page revolves around: current status, the running
+/// clock against today's target, and the start/pause/stop controls.
+class _HeroTimerCard extends StatelessWidget {
+  const _HeroTimerCard({
     required this.session,
     required this.expected,
     required this.onStart,
@@ -210,25 +117,33 @@ class _TodayTimerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = ShadTheme.of(context).colorScheme;
     final progress = expected.inMinutes == 0
         ? 0.0
         : (session.elapsed.inMinutes / expected.inMinutes).clamp(0.0, 1.0);
+    final remaining = expected - session.elapsed;
+    final accent = _statusAccent(session.status);
+    final percent = (progress * 100).round();
+    final caption = remaining.inMinutes > 0
+        ? '$percent% от дневной нормы · осталось ${_formatShort(remaining)}'
+        : '$percent% от дневной нормы · норма выполнена';
+
     return _DashboardCard(
+      padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Expanded(
-                child: Text(
-                  'Сегодня',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textMuted,
-                  ),
+              Text(
+                'Сегодня',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: colors.mutedForeground,
                 ),
               ),
+              const Spacer(),
               StatusBadge(status: session.status),
             ],
           ),
@@ -239,21 +154,22 @@ class _TodayTimerCard extends StatelessWidget {
             children: [
               Text(
                 _formatClock(session.elapsed),
-                style: const TextStyle(
-                  fontSize: 36,
+                style: TextStyle(
+                  fontSize: 42,
                   height: 1,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xff020617),
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -1,
+                  color: colors.foreground,
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.only(bottom: 4),
+                padding: const EdgeInsets.only(bottom: 6),
                 child: Text(
                   '/ ${_formatShort(expected)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xffa3aab6),
+                    fontWeight: FontWeight.w600,
+                    color: colors.mutedForeground,
                   ),
                 ),
               ),
@@ -261,18 +177,23 @@ class _TodayTimerCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
           ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.sm),
+            borderRadius: BorderRadius.circular(999),
             child: Container(
               height: 8,
-              color: const Color(0xffedf1f4),
+              color: colors.muted,
               alignment: Alignment.centerLeft,
               child: FractionallySizedBox(
                 widthFactor: progress,
-                child: Container(color: AppColors.statusWorkingText),
+                child: Container(color: accent),
               ),
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            caption,
+            style: TextStyle(fontSize: 13, color: colors.mutedForeground),
+          ),
+          const SizedBox(height: AppSpacing.xl),
           _TimerActions(
             status: session.status,
             onStart: onStart,
@@ -385,7 +306,7 @@ class _OutlineActionButton extends StatelessWidget {
     );
     return SizedBox(
       width: double.infinity,
-      height: 36,
+      height: 40,
       child: destructive
           ? ShadButton.destructive(
               enabled: enabled,
@@ -403,73 +324,152 @@ class _OutlineActionButton extends StatelessWidget {
   }
 }
 
-class _MetricPanel extends StatelessWidget {
-  const _MetricPanel({
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    required this.value,
-    required this.suffix,
-    this.compact = false,
-    this.alignValueBottom = false,
-  });
+/// Three at-a-glance numbers below the hero card. Every tile shares one
+/// structure (icon chip, label, value) so they always line up without
+/// needing height hacks.
+class _StatsRow extends StatelessWidget {
+  const _StatsRow({required this.wide});
 
-  final IconData icon;
-  final Color iconColor;
-  final String title;
-  final String value;
-  final String suffix;
-  final bool compact;
-  final bool alignValueBottom;
+  final bool wide;
 
   @override
   Widget build(BuildContext context) {
+    const violationsCount = 0;
+    final tiles = [
+      const _StatTile(
+        icon: LucideIcons.rotateCcw,
+        accent: AppColors.brand,
+        title: 'За неделю',
+        value: '36 ч 08 мин',
+        suffix: 'из 40 ч',
+      ),
+      const _StatTile(
+        icon: LucideIcons.calendarCheck,
+        accent: AppColors.statusWorkingText,
+        title: 'Рабочих дней',
+        value: '18',
+        suffix: 'в этом месяце',
+      ),
+      const _StatTile(
+        icon: violationsCount == 0
+            ? LucideIcons.shieldCheck
+            : LucideIcons.triangleAlert,
+        accent:
+            violationsCount == 0 ? AppColors.statusWorkingText : AppColors.rose,
+        title: 'Мои нарушения',
+        value: '$violationsCount',
+        suffix: violationsCount == 0 ? 'нет открытых' : 'открыто',
+      ),
+    ];
+
+    if (!wide) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < tiles.length; i++) ...[
+            if (i > 0) const SizedBox(height: AppSpacing.lg),
+            tiles[i],
+          ],
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        for (var i = 0; i < tiles.length; i++) ...[
+          if (i > 0) const SizedBox(width: AppSpacing.lg),
+          Expanded(child: tiles[i]),
+        ],
+      ],
+    );
+  }
+}
+
+class _StatTile extends StatelessWidget {
+  const _StatTile({
+    required this.icon,
+    required this.accent,
+    required this.title,
+    required this.value,
+    required this.suffix,
+  });
+
+  final IconData icon;
+  final Color accent;
+  final String title;
+  final String value;
+  final String suffix;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = ShadTheme.of(context).colorScheme;
     return _DashboardCard(
-      minHeight: compact ? 142 : 164,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 17, color: iconColor),
+              _IconChip(icon: icon, accent: accent),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textMuted,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: colors.mutedForeground,
                   ),
                 ),
               ),
             ],
           ),
-          if (alignValueBottom) const Spacer() else const SizedBox(height: 14),
+          const SizedBox(height: AppSpacing.md),
           Wrap(
             crossAxisAlignment: WrapCrossAlignment.end,
             spacing: AppSpacing.xs,
             children: [
               Text(
                 value,
-                style: const TextStyle(
-                  fontSize: 24,
+                style: TextStyle(
+                  fontSize: 26,
                   height: 1,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xff020617),
+                  color: colors.foreground,
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 2),
                 child: Text(
                   suffix,
-                  style:
-                      const TextStyle(fontSize: 13, color: Color(0xff9aa3af)),
+                  style: TextStyle(fontSize: 13, color: colors.mutedForeground),
                 ),
               ),
             ],
           ),
         ],
       ),
+    );
+  }
+}
+
+class _IconChip extends StatelessWidget {
+  const _IconChip({required this.icon, required this.accent, this.size = 36});
+
+  final IconData icon;
+  final Color accent;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(size * 0.3),
+      ),
+      alignment: Alignment.center,
+      child: Icon(icon, size: size * 0.5, color: accent),
     );
   }
 }
@@ -489,7 +489,7 @@ class _MiddleGrid extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           events,
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.xl),
           schedule,
         ],
       );
@@ -498,7 +498,7 @@ class _MiddleGrid extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(flex: 7, child: events),
-        const SizedBox(width: AppSpacing.lg),
+        const SizedBox(width: AppSpacing.xl),
         Expanded(flex: 5, child: schedule),
       ],
     );
@@ -517,16 +517,19 @@ class _TimelinePanel extends StatelessWidget {
       padding: EdgeInsets.zero,
       child: Column(
         children: [
-          const _CardHeader(
+          _SectionHeader(
+            icon: LucideIcons.activity,
             title: 'События дня',
-            trailing: Text(
-              'Все →',
-              style: TextStyle(
-                color: AppColors.brand,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            trailing: visibleEvents.isEmpty
+                ? null
+                : const Text(
+                    'Все →',
+                    style: TextStyle(
+                      color: AppColors.brand,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
           ),
           if (visibleEvents.isEmpty)
             const Padding(
@@ -563,6 +566,7 @@ class _EventRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = ShadTheme.of(context).colorScheme;
     final tone = _eventTone(event.action);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
@@ -578,16 +582,16 @@ class _EventRow extends StatelessWidget {
           Expanded(
             child: Text(
               _eventTitle(event),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: AppColors.textPrimary,
                 fontWeight: FontWeight.w600,
+                color: colors.foreground,
               ),
             ),
           ),
           Text(
             _formatTime(event.time),
-            style: const TextStyle(fontSize: 14, color: AppColors.textMuted),
+            style: TextStyle(fontSize: 14, color: colors.mutedForeground),
           ),
         ],
       ),
@@ -608,7 +612,10 @@ class _SchedulePanel extends StatelessWidget {
       padding: EdgeInsets.zero,
       child: Column(
         children: [
-          const _CardHeader(title: 'Мой график сегодня'),
+          const _SectionHeader(
+            icon: LucideIcons.calendarClock,
+            title: 'Мой график сегодня',
+          ),
           Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
@@ -623,6 +630,7 @@ class _SchedulePanel extends StatelessWidget {
                 _ScheduleRow(
                   label: 'Обеденный перерыв',
                   value: '${plan.breakMinutes} мин',
+                  isLast: true,
                 ),
               ],
             ),
@@ -634,32 +642,37 @@ class _SchedulePanel extends StatelessWidget {
 }
 
 class _ScheduleRow extends StatelessWidget {
-  const _ScheduleRow({required this.label, required this.value});
+  const _ScheduleRow({
+    required this.label,
+    required this.value,
+    this.isLast = false,
+  });
 
   final String label;
   final String value;
+  final bool isLast;
 
   @override
   Widget build(BuildContext context) {
+    final colors = ShadTheme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: EdgeInsets.only(bottom: isLast ? 0 : AppSpacing.md),
       child: Row(
         children: [
           Expanded(
             child: Text(
               label,
-              style:
-                  const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+              style: TextStyle(fontSize: 14, color: colors.mutedForeground),
             ),
           ),
           Flexible(
             child: Text(
               value,
               textAlign: TextAlign.right,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: Color(0xff020617),
                 fontWeight: FontWeight.w600,
+                color: colors.foreground,
               ),
             ),
           ),
@@ -679,7 +692,7 @@ class _DepartmentCard extends StatelessWidget {
       padding: EdgeInsets.zero,
       child: Column(
         children: [
-          const _CardHeader(title: 'Коллеги отдела'),
+          const _SectionHeader(icon: LucideIcons.users, title: 'Коллеги отдела'),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
             child: Column(
@@ -702,57 +715,22 @@ class _ColleagueRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = ShadTheme.of(context).colorScheme;
     final name = employee.user.name;
     final caption = _departmentCaption(employee.user);
-    final worked =
-        '${employee.actualHours.toStringAsFixed(0)} ч ${((employee.actualHours % 1) * 60).round()} мин';
-    final planned = 'из ${employee.plannedHours.toStringAsFixed(0)} ч';
     return Container(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: Color(0xffeef0f2))),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: colors.border)),
       ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final narrow = constraints.maxWidth < 620;
-          final identity = _ColleagueIdentity(name: name, caption: caption);
-          final time = _ColleagueTime(worked: worked, planned: planned);
-
-          if (narrow) {
-            return Column(
-              children: [
-                Row(
-                  children: [
-                    _Avatar(name: employee.user.name),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(child: identity),
-                    const SizedBox(width: AppSpacing.md),
-                    StatusBadge(status: employee.status),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Row(
-                  children: [
-                    const SizedBox(width: 48),
-                    Expanded(child: time),
-                  ],
-                ),
-              ],
-            );
-          }
-
-          return Row(
-            children: [
-              _Avatar(name: employee.user.name),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(child: identity),
-              const SizedBox(width: AppSpacing.md),
-              time,
-              const SizedBox(width: AppSpacing.md),
-              StatusBadge(status: employee.status),
-            ],
-          );
-        },
+      child: Row(
+        children: [
+          _Avatar(name: employee.user.name),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(child: _ColleagueIdentity(name: name, caption: caption)),
+          const SizedBox(width: AppSpacing.md),
+          StatusBadge(status: employee.status),
+        ],
       ),
     );
   }
@@ -766,53 +744,23 @@ class _ColleagueIdentity extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = ShadTheme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           name,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
-            color: AppColors.textPrimary,
             fontWeight: FontWeight.w600,
+            color: colors.foreground,
           ),
         ),
         const SizedBox(height: 2),
         Text(
           caption,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 12, color: Color(0xffa0a7b1)),
-        ),
-      ],
-    );
-  }
-}
-
-class _ColleagueTime extends StatelessWidget {
-  const _ColleagueTime({required this.worked, required this.planned});
-
-  final String worked;
-  final String planned;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Text(
-          worked,
-          textAlign: TextAlign.right,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Color(0xff020617),
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          planned,
-          textAlign: TextAlign.right,
-          style: const TextStyle(fontSize: 12, color: Color(0xffa0a7b1)),
+          style: TextStyle(fontSize: 12, color: colors.mutedForeground),
         ),
       ],
     );
@@ -829,15 +777,15 @@ class _Avatar extends StatelessWidget {
     return Container(
       width: 36,
       height: 36,
-      decoration: const BoxDecoration(
-        color: Color(0xffeaf2f8),
+      decoration: BoxDecoration(
+        color: AppColors.brand.withValues(alpha: 0.12),
         shape: BoxShape.circle,
       ),
       alignment: Alignment.center,
       child: Text(
         _initials(name),
         style: const TextStyle(
-          color: Color(0xff1f7cae),
+          color: AppColors.brand,
           fontSize: 12,
           fontWeight: FontWeight.w600,
         ),
@@ -846,29 +794,40 @@ class _Avatar extends StatelessWidget {
   }
 }
 
-class _CardHeader extends StatelessWidget {
-  const _CardHeader({required this.title, this.trailing});
+/// Shared header used by every content card below the hero: an icon chip,
+/// a title, and an optional trailing action — the repeated pattern that
+/// keeps the page reading as one system rather than several one-offs.
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({
+    required this.icon,
+    required this.title,
+    this.trailing,
+  });
 
+  final IconData icon;
   final String title;
   final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
+    final colors = ShadTheme.of(context).colorScheme;
     return Container(
-      height: 54,
+      height: 60,
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xffeef0f2))),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: colors.border)),
       ),
       child: Row(
         children: [
+          _IconChip(icon: icon, accent: AppColors.brand, size: 28),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
               title,
-              style: const TextStyle(
-                fontSize: 16,
+              style: TextStyle(
+                fontSize: 15,
                 fontWeight: FontWeight.w700,
-                color: Color(0xff020617),
+                color: colors.foreground,
               ),
             ),
           ),
@@ -883,23 +842,14 @@ class _DashboardCard extends StatelessWidget {
   const _DashboardCard({
     required this.child,
     this.padding = const EdgeInsets.all(AppSpacing.lg),
-    this.minHeight,
   });
 
   final Widget child;
   final EdgeInsetsGeometry padding;
-  final double? minHeight;
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: BoxConstraints(minHeight: minHeight ?? 0),
-      child: ShadCard(
-        radius: AppRadius.card,
-        padding: padding,
-        child: child,
-      ),
-    );
+    return ShadCard(padding: padding, child: child);
   }
 }
 
@@ -953,8 +903,9 @@ String _formatClock(Duration duration) {
 }
 
 String _formatShort(Duration duration) {
-  final hours = duration.inHours;
-  final minutes = duration.inMinutes.remainder(60);
+  final clamped = duration.isNegative ? Duration.zero : duration;
+  final hours = clamped.inHours;
+  final minutes = clamped.inMinutes.remainder(60);
   if (hours == 0) return '$minutes мин';
   if (minutes == 0) return '$hours ч 00 мин';
   return '$hours ч $minutes мин';
@@ -978,11 +929,27 @@ String _eventTitle(TimeEvent event) {
 
 (Color, IconData) _eventTone(String action) {
   return switch (action) {
-    'start' => (AppColors.statusWorkingText, LucideIcons.play),
-    'pause' => (AppColors.statusPausedText, LucideIcons.pause),
-    'resume' => (const Color(0xff2f87b8), LucideIcons.play),
-    'stop' => (AppColors.statusStoppedText, LucideIcons.square),
-    _ => (AppColors.textMuted, LucideIcons.circle),
+    'start' => (AppColors.statusWorkingText, LucideIcons.logIn),
+    'pause' => (AppColors.statusPausedText, LucideIcons.coffee),
+    'resume' => (AppColors.brand, LucideIcons.rotateCw),
+    'stop' => (AppColors.statusStoppedText, LucideIcons.logOut),
+    _ => (AppColors.muted, LucideIcons.circle),
+  };
+}
+
+/// Mirrors the palette used by [StatusBadge] so the hero card's progress
+/// bar always agrees with the badge shown next to it.
+Color _statusAccent(WorkStatus status) {
+  return switch (status) {
+    WorkStatus.working => AppColors.statusWorkingText,
+    WorkStatus.paused => AppColors.statusPausedText,
+    WorkStatus.notStarted => AppColors.statusNotStartedText,
+    WorkStatus.stopped => AppColors.statusStoppedText,
+    WorkStatus.shortened => AppColors.statusShortenedText,
+    WorkStatus.dayOff => AppColors.statusDayOffText,
+    WorkStatus.holiday => AppColors.statusHolidayText,
+    WorkStatus.vacationDisplayOnly => AppColors.violet,
+    WorkStatus.sickDisplayOnly => const Color(0xff9a3412),
   };
 }
 
