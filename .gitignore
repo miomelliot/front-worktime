@@ -10,6 +10,9 @@ pubspec.lock
 .idea/
 .vscode/
 *.iml
+Обновление дизайна сервиса/
+skills-lock.json
+.agents/
 
 # Generated code (freezed / json_serializable).
 # Committing generated sources is a valid choice; by default we regenerate
