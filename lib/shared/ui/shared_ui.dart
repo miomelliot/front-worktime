@@ -1,13 +1,16 @@
 export 'calendar_day_cell.dart';
 export 'confirm_dialog.dart';
+export 'dashboard_card.dart';
 export 'employee_status_card.dart';
 export 'employee_status_table.dart';
 export 'empty_state.dart';
 export 'error_state.dart';
+export 'initials_avatar.dart';
 export 'loading_state.dart';
 export 'metric_card.dart';
 export 'page_header.dart';
 export 'role_badge.dart';
+export 'stat_tile.dart';
 export 'status_badge.dart';
 export 'time_event_timeline.dart';
 export 'timer_card.dart';

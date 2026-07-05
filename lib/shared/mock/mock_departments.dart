@@ -3,19 +3,19 @@ import '../../features/team/domain/department.dart';
 const mockDepartments = <Department>[
   Department(
       id: 'eng',
-      name: 'Engineering',
+      name: 'Разработка',
       employeeCount: 2,
-      managerName: 'Manager User'),
+      managerName: 'Дмитрий Ковалёв'),
   Department(
       id: 'support',
-      name: 'Support',
+      name: 'Поддержка',
       employeeCount: 1,
-      managerName: 'Anna Sidorova'),
+      managerName: 'Анна Сидорова'),
   Department(
       id: 'sales',
-      name: 'Sales',
+      name: 'Продажи',
       employeeCount: 1,
-      managerName: 'Alex Smirnov'),
+      managerName: 'Алексей Смирнов'),
   Department(
-      id: 'hr', name: 'HR', employeeCount: 1, managerName: 'Maria Volkova'),
+      id: 'hr', name: 'HR', employeeCount: 1, managerName: 'Мария Волкова'),
 ];

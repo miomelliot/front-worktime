@@ -1,73 +1,108 @@
 import 'package:flutter/widgets.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../features/calendar/domain/calendar_day.dart';
+import '../theme/app_colors.dart';
 
 class CalendarDayCell extends StatelessWidget {
   const CalendarDayCell({
     super.key,
     required this.day,
     this.isSelected = false,
+    this.isToday = false,
+    this.onTap,
   });
 
   final CalendarDay day;
   final bool isSelected;
+  final bool isToday;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final colors = _colors(day.type);
-    return Container(
-      margin: const EdgeInsets.all(4),
-      padding: const EdgeInsets.all(6),
-      decoration: BoxDecoration(
-        color: isSelected ? const Color(0xff2563eb) : colors.$1,
-        borderRadius: BorderRadius.circular(8),
-        border:
-            Border.all(color: isSelected ? const Color(0xff2563eb) : colors.$2),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '${day.date.day}',
-            style: TextStyle(
-              color: isSelected
-                  ? const Color(0xffffffff)
-                  : const Color(0xff111827),
-              fontWeight: FontWeight.w700,
-            ),
+    final colors = ShadTheme.of(context).colorScheme;
+    final tone = _tone(day.type);
+    final subtitle = _subtitle(day);
+    final background = isSelected ? AppColors.brand : tone.$1;
+    final foreground = isSelected ? colors.background : tone.$2;
+
+    return MouseRegion(
+      cursor: onTap == null
+          ? MouseCursor.defer
+          : SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: background,
+            borderRadius: BorderRadius.circular(10),
+            border: isToday && !isSelected
+                ? Border.all(color: AppColors.brand, width: 1.5)
+                : null,
           ),
-          const Spacer(),
-          Text(
-            day.type.label,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 10,
-              color: isSelected
-                  ? const Color(0xffffffff)
-                  : const Color(0xff667085),
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${day.date.day}',
+                style: TextStyle(
+                  color: foreground,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                subtitle,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: isSelected
+                      ? colors.background.withValues(alpha: 0.85)
+                      : colors.mutedForeground,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
-(Color, Color) _colors(CalendarDayType type) {
-  switch (type) {
-    case CalendarDayType.workday:
-      return (const Color(0xffffffff), const Color(0xffe5e7eb));
-    case CalendarDayType.weekend:
-      return (const Color(0xfff8fafc), const Color(0xffe2e8f0));
-    case CalendarDayType.holiday:
-      return (const Color(0xffffe4e6), const Color(0xfffecdd3));
-    case CalendarDayType.shortened:
-      return (const Color(0xffccfbf1), const Color(0xff99f6e4));
-    case CalendarDayType.dayOff:
-      return (const Color(0xfff1f5f9), const Color(0xffcbd5e1));
-    case CalendarDayType.worked:
-      return (const Color(0xffdcfce7), const Color(0xffbbf7d0));
-    case CalendarDayType.underworkedDisplayOnly:
-      return (const Color(0xfffef3c7), const Color(0xfffde68a));
+String _subtitle(CalendarDay day) {
+  if (day.type == CalendarDayType.worked ||
+      day.type == CalendarDayType.underworkedDisplayOnly) {
+    return '${day.type.label} · ${day.actualHours.toStringAsFixed(0)}ч';
   }
+  return day.type.label;
+}
+
+(Color, Color) _tone(CalendarDayType type) {
+  return switch (type) {
+    CalendarDayType.workday => (
+        const Color(0xffffffff),
+        const Color(0xff101828),
+      ),
+    CalendarDayType.weekend ||
+    CalendarDayType.dayOff =>
+      (AppColors.statusDayOffBg, AppColors.statusDayOffText),
+    CalendarDayType.holiday => (
+        AppColors.statusHolidayBg,
+        AppColors.statusHolidayText,
+      ),
+    CalendarDayType.shortened => (
+        AppColors.statusShortenedBg,
+        AppColors.statusShortenedText,
+      ),
+    CalendarDayType.worked => (
+        AppColors.statusWorkingBg,
+        AppColors.statusWorkingText,
+      ),
+    CalendarDayType.underworkedDisplayOnly => (
+        AppColors.statusPausedBg,
+        AppColors.statusPausedText,
+      ),
+  };
 }

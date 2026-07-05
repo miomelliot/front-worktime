@@ -20,6 +20,11 @@ class StatusBadge extends StatelessWidget {
   }
 }
 
+/// The solid color [StatusBadge] uses as foreground for [status] — reused
+/// wherever a status needs to drive another visual (a progress bar, a
+/// timeline dot) so it always agrees with the badge shown next to it.
+Color statusAccent(WorkStatus status) => _statusColors(status).$2;
+
 (Color, Color) _statusColors(WorkStatus status) {
   switch (status) {
     case WorkStatus.working:

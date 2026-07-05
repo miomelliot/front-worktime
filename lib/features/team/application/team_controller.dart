@@ -5,13 +5,16 @@ import '../data/fake_team_repository.dart';
 import '../domain/department.dart';
 import '../domain/employee_status.dart';
 
+const teamFilterAll = 'Все';
+
 class TeamState {
   const TeamState({
     required this.employees,
     required this.departments,
     this.query = '',
-    this.department = 'All',
-    this.status = 'All',
+    this.department = teamFilterAll,
+    this.status = teamFilterAll,
+    this.filtersEpoch = 0,
   });
 
   final List<EmployeeStatus> employees;
@@ -20,14 +23,34 @@ class TeamState {
   final String department;
   final String status;
 
+  /// Bumped only by [TeamController.resetFilters], never by typing — lets
+  /// the search field's widget key drop stale text on reset without
+  /// remounting (and losing focus) on every keystroke.
+  final int filtersEpoch;
+
+  bool get hasActiveFilters =>
+      query.isNotEmpty ||
+      department != teamFilterAll ||
+      status != teamFilterAll;
+
+  /// Distinct status labels actually present among [employees], in the
+  /// order [WorkStatus] declares them, so the filter never offers a choice
+  /// that would return zero results.
+  List<String> get availableStatuses => WorkStatus.values
+      .where((value) => employees.any((employee) => employee.status == value))
+      .map((value) => value.label)
+      .toList();
+
   List<EmployeeStatus> get filtered {
     return employees.where((employee) {
-      final q = query.toLowerCase();
-      final matchesQuery = employee.user.name.toLowerCase().contains(q) ||
+      final q = query.trim().toLowerCase();
+      final matchesQuery = q.isEmpty ||
+          employee.user.name.toLowerCase().contains(q) ||
           employee.user.email.toLowerCase().contains(q);
-      final matchesDepartment =
-          department == 'All' || employee.user.department == department;
-      final matchesStatus = status == 'All' || employee.status.label == status;
+      final matchesDepartment = department == teamFilterAll ||
+          employee.user.department == department;
+      final matchesStatus =
+          status == teamFilterAll || employee.status.label == status;
       return matchesQuery && matchesDepartment && matchesStatus;
     }).toList();
   }
@@ -39,6 +62,7 @@ class TeamState {
       query: query ?? this.query,
       department: department ?? this.department,
       status: status ?? this.status,
+      filtersEpoch: filtersEpoch,
     );
   }
 }
@@ -64,6 +88,11 @@ class TeamController extends AsyncNotifier<TeamState> {
       _update((state) => state.copyWith(department: value));
   void setStatus(String value) =>
       _update((state) => state.copyWith(status: value));
+  void resetFilters() => _update((state) => TeamState(
+        employees: state.employees,
+        departments: state.departments,
+        filtersEpoch: state.filtersEpoch + 1,
+      ));
 
   EmployeeStatus? findEmployee(String id) {
     final current = state.value;

@@ -53,14 +53,23 @@ class CalendarController extends AsyncNotifier<CalendarState> {
     final current = state.value;
     final days =
         await ref.read(fakeCalendarRepositoryProvider).loadMonth(month);
+    final currentSelection = current?.selectedDay;
+    final selectionStillInMonth = currentSelection != null &&
+        currentSelection.year == month.year &&
+        currentSelection.month == month.month;
     state = AsyncData(
       CalendarState(
         focusedMonth: month,
-        selectedDay: current?.selectedDay ?? month,
+        selectedDay: selectionStillInMonth
+            ? currentSelection
+            : DateTime(month.year, month.month, 1),
         days: days,
       ),
     );
   }
+
+  Future<void> goToToday() => focusMonth(DateTime.now())
+      .then((_) => selectDay(DateTime.now()));
 
   void selectDay(DateTime day) {
     final current = state.value;

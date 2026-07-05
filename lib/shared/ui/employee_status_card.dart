@@ -3,6 +3,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../features/team/domain/employee_status.dart';
 import '../theme/app_spacing.dart';
+import 'initials_avatar.dart';
 import 'role_badge.dart';
 import 'status_badge.dart';
 
@@ -14,67 +15,108 @@ class EmployeeStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = ShadTheme.of(context).colorScheme;
+    final user = employee.user;
+    final hasHours = employee.plannedHours > 0;
+    final progress = hasHours
+        ? (employee.actualHours / employee.plannedHours).clamp(0.0, 1.0)
+        : 0.0;
+    final accent = statusAccent(employee.status);
+
     return ShadCard(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _Avatar(name: employee.user.name),
+              InitialsAvatar(name: user.name),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(employee.user.name,
-                        style: const TextStyle(fontWeight: FontWeight.w700)),
-                    Text(employee.user.email,
-                        style: const TextStyle(
-                            fontSize: 12, color: Color(0xff667085))),
+                    Text(
+                      user.name,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: colors.foreground,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      user.email,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 12, color: colors.mutedForeground),
+                    ),
                   ],
                 ),
               ),
+              const SizedBox(width: AppSpacing.sm),
               StatusBadge(status: employee.status),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-          RoleBadge(role: employee.user.role),
-          const SizedBox(height: AppSpacing.md),
-          Text(employee.user.department),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            '${employee.actualHours.toStringAsFixed(1)} / ${employee.plannedHours.toStringAsFixed(1)}h · ${employee.lastEvent}',
-            style: const TextStyle(color: Color(0xff667085)),
+          Wrap(
+            spacing: AppSpacing.xs,
+            runSpacing: AppSpacing.xs,
+            children: [
+              RoleBadge(role: user.role),
+              ShadBadge.outline(child: Text(user.department)),
+            ],
           ),
           const SizedBox(height: AppSpacing.md),
-          ShadButton.outline(
-              onPressed: onOpen, child: const Text('Open details')),
+          if (hasHours) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: Container(
+                height: 6,
+                color: colors.muted,
+                alignment: Alignment.centerLeft,
+                child: FractionallySizedBox(
+                  widthFactor: progress,
+                  child: Container(color: accent),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              '${employee.actualHours.toStringAsFixed(1)} из ${employee.plannedHours.toStringAsFixed(1)} ч',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: colors.foreground,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+          ],
+          Row(
+            children: [
+              Icon(LucideIcons.history, size: 13, color: colors.mutedForeground),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  employee.lastEvent,
+                  overflow: TextOverflow.ellipsis,
+                  style:
+                      TextStyle(fontSize: 12, color: colors.mutedForeground),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          SizedBox(
+            width: double.infinity,
+            child: ShadButton.outline(
+              onPressed: onOpen,
+              trailing: const Icon(LucideIcons.chevronRight, size: 14),
+              child: const Text('Открыть профиль'),
+            ),
+          ),
         ],
-      ),
-    );
-  }
-}
-
-class _Avatar extends StatelessWidget {
-  const _Avatar({required this.name});
-
-  final String name;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 40,
-      height: 40,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: const Color(0xffeef2ff),
-      ),
-      child: Text(
-        name.split(' ').map((part) => part[0]).take(2).join(),
-        style: const TextStyle(
-            fontWeight: FontWeight.w800, color: Color(0xff4338ca)),
       ),
     );
   }

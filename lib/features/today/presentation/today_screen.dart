@@ -122,13 +122,13 @@ class _HeroTimerCard extends StatelessWidget {
         ? 0.0
         : (session.elapsed.inMinutes / expected.inMinutes).clamp(0.0, 1.0);
     final remaining = expected - session.elapsed;
-    final accent = _statusAccent(session.status);
+    final accent = statusAccent(session.status);
     final percent = (progress * 100).round();
     final caption = remaining.inMinutes > 0
         ? '$percent% от дневной нормы · осталось ${_formatShort(remaining)}'
         : '$percent% от дневной нормы · норма выполнена';
 
-    return _DashboardCard(
+    return DashboardCard(
       padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -336,21 +336,21 @@ class _StatsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     const violationsCount = 0;
     final tiles = [
-      const _StatTile(
+      const StatTile(
         icon: LucideIcons.rotateCcw,
         accent: AppColors.brand,
         title: 'За неделю',
         value: '36 ч 08 мин',
         suffix: 'из 40 ч',
       ),
-      const _StatTile(
+      const StatTile(
         icon: LucideIcons.calendarCheck,
         accent: AppColors.statusWorkingText,
         title: 'Рабочих дней',
         value: '18',
         suffix: 'в этом месяце',
       ),
-      const _StatTile(
+      const StatTile(
         icon: violationsCount == 0
             ? LucideIcons.shieldCheck
             : LucideIcons.triangleAlert,
@@ -381,95 +381,6 @@ class _StatsRow extends StatelessWidget {
           Expanded(child: tiles[i]),
         ],
       ],
-    );
-  }
-}
-
-class _StatTile extends StatelessWidget {
-  const _StatTile({
-    required this.icon,
-    required this.accent,
-    required this.title,
-    required this.value,
-    required this.suffix,
-  });
-
-  final IconData icon;
-  final Color accent;
-  final String title;
-  final String value;
-  final String suffix;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = ShadTheme.of(context).colorScheme;
-    return _DashboardCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _IconChip(icon: icon, accent: accent),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: colors.mutedForeground,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Wrap(
-            crossAxisAlignment: WrapCrossAlignment.end,
-            spacing: AppSpacing.xs,
-            children: [
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 26,
-                  height: 1,
-                  fontWeight: FontWeight.w700,
-                  color: colors.foreground,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 2),
-                child: Text(
-                  suffix,
-                  style: TextStyle(fontSize: 13, color: colors.mutedForeground),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _IconChip extends StatelessWidget {
-  const _IconChip({required this.icon, required this.accent, this.size = 36});
-
-  final IconData icon;
-  final Color accent;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(size * 0.3),
-      ),
-      alignment: Alignment.center,
-      child: Icon(icon, size: size * 0.5, color: accent),
     );
   }
 }
@@ -513,11 +424,11 @@ class _TimelinePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final visibleEvents = events.reversed.take(3).toList();
-    return _DashboardCard(
+    return DashboardCard(
       padding: EdgeInsets.zero,
       child: Column(
         children: [
-          _SectionHeader(
+          SectionHeader(
             icon: LucideIcons.activity,
             title: 'События дня',
             trailing: visibleEvents.isEmpty
@@ -608,11 +519,11 @@ class _SchedulePanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final plan = session.plan;
     final days = plan.isShortened ? '5/2, сокращенный' : '5/2';
-    return _DashboardCard(
+    return DashboardCard(
       padding: EdgeInsets.zero,
       child: Column(
         children: [
-          const _SectionHeader(
+          const SectionHeader(
             icon: LucideIcons.calendarClock,
             title: 'Мой график сегодня',
           ),
@@ -688,11 +599,11 @@ class _DepartmentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colleagues = mockEmployeeStatuses.take(2).toList();
-    return _DashboardCard(
+    return DashboardCard(
       padding: EdgeInsets.zero,
       child: Column(
         children: [
-          const _SectionHeader(icon: LucideIcons.users, title: 'Коллеги отдела'),
+          const SectionHeader(icon: LucideIcons.users, title: 'Коллеги отдела'),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
             child: Column(
@@ -794,65 +705,6 @@ class _Avatar extends StatelessWidget {
   }
 }
 
-/// Shared header used by every content card below the hero: an icon chip,
-/// a title, and an optional trailing action — the repeated pattern that
-/// keeps the page reading as one system rather than several one-offs.
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({
-    required this.icon,
-    required this.title,
-    this.trailing,
-  });
-
-  final IconData icon;
-  final String title;
-  final Widget? trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = ShadTheme.of(context).colorScheme;
-    return Container(
-      height: 60,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: colors.border)),
-      ),
-      child: Row(
-        children: [
-          _IconChip(icon: icon, accent: AppColors.brand, size: 28),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: colors.foreground,
-              ),
-            ),
-          ),
-          if (trailing != null) trailing!,
-        ],
-      ),
-    );
-  }
-}
-
-class _DashboardCard extends StatelessWidget {
-  const _DashboardCard({
-    required this.child,
-    this.padding = const EdgeInsets.all(AppSpacing.lg),
-  });
-
-  final Widget child;
-  final EdgeInsetsGeometry padding;
-
-  @override
-  Widget build(BuildContext context) {
-    return ShadCard(padding: padding, child: child);
-  }
-}
-
 String _dayPartGreeting() {
   final hour = DateTime.now().hour;
   if (hour < 6) return 'Доброй ночи';
@@ -934,22 +786,6 @@ String _eventTitle(TimeEvent event) {
     'resume' => (AppColors.brand, LucideIcons.rotateCw),
     'stop' => (AppColors.statusStoppedText, LucideIcons.logOut),
     _ => (AppColors.muted, LucideIcons.circle),
-  };
-}
-
-/// Mirrors the palette used by [StatusBadge] so the hero card's progress
-/// bar always agrees with the badge shown next to it.
-Color _statusAccent(WorkStatus status) {
-  return switch (status) {
-    WorkStatus.working => AppColors.statusWorkingText,
-    WorkStatus.paused => AppColors.statusPausedText,
-    WorkStatus.notStarted => AppColors.statusNotStartedText,
-    WorkStatus.stopped => AppColors.statusStoppedText,
-    WorkStatus.shortened => AppColors.statusShortenedText,
-    WorkStatus.dayOff => AppColors.statusDayOffText,
-    WorkStatus.holiday => AppColors.statusHolidayText,
-    WorkStatus.vacationDisplayOnly => AppColors.violet,
-    WorkStatus.sickDisplayOnly => const Color(0xff9a3412),
   };
 }
 

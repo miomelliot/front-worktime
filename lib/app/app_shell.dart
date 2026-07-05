@@ -67,25 +67,38 @@ class _TopHeader extends ConsumerWidget {
         color: Color(0xffffffff),
         border: Border(bottom: BorderSide(color: AppColors.border)),
       ),
-      child: Row(
-        children: [
-          const Spacer(),
-          if (user != null) ...[
-            RoleBadge(role: user.role),
-            const SizedBox(width: AppSpacing.md),
-            Text(user.name,
-                style: const TextStyle(fontWeight: FontWeight.w700)),
-          ],
-          const SizedBox(width: AppSpacing.md),
-          ShadButton.ghost(
-            leading: const Icon(LucideIcons.logOut, size: 18),
-            onPressed: () {
-              ref.read(authControllerProvider.notifier).logout();
-              context.go('/login');
-            },
-            child: const Text('Выйти'),
-          ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final showName = constraints.maxWidth >= 480;
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (user != null) ...[
+                RoleBadge(role: user.role),
+                if (showName) ...[
+                  const SizedBox(width: AppSpacing.md),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 160),
+                    child: Text(
+                      user.name,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ],
+              const SizedBox(width: AppSpacing.md),
+              ShadButton.ghost(
+                leading: const Icon(LucideIcons.logOut, size: 18),
+                onPressed: () {
+                  ref.read(authControllerProvider.notifier).logout();
+                  context.go('/login');
+                },
+                child: const Text('Выйти'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -209,9 +222,14 @@ class _NavButton extends StatelessWidget {
             selected ? ShadButtonVariant.secondary : ShadButtonVariant.ghost,
         onPressed: onPressed,
         width: fill ? double.infinity : null,
+        expands: fill,
         mainAxisAlignment: MainAxisAlignment.start,
         leading: Icon(item.icon, size: 18),
-        child: Text(item.label),
+        child: Text(
+          item.label,
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+        ),
       ),
     );
   }

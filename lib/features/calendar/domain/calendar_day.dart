@@ -15,19 +15,19 @@ extension CalendarDayTypeLabel on CalendarDayType {
   String get label {
     switch (this) {
       case CalendarDayType.workday:
-        return 'Workday';
+        return 'Рабочий';
       case CalendarDayType.weekend:
-        return 'Weekend';
+        return 'Выходной';
       case CalendarDayType.holiday:
-        return 'Holiday';
+        return 'Праздник';
       case CalendarDayType.shortened:
-        return 'Shortened';
+        return 'Сокращ.';
       case CalendarDayType.dayOff:
-        return 'Day off';
+        return 'Отгул';
       case CalendarDayType.worked:
-        return 'Worked';
+        return 'Отработан';
       case CalendarDayType.underworkedDisplayOnly:
-        return 'Underworked';
+        return 'Недобор';
     }
   }
 }

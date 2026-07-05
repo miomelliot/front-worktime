@@ -13,14 +13,13 @@ class LoadingState extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(
                 width: 18,
                 height: 18,
                 child: CircularProgressIndicator(strokeWidth: 2)),
             const SizedBox(width: 12),
-            Text(label),
+            Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
           ],
         ),
       ),
