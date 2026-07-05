@@ -40,7 +40,7 @@ class ApiDuration {
   /// Formats a count of seconds compactly, e.g. `8h 30m` or `45m`.
   static String formatHm(int totalSeconds) {
     final negative = totalSeconds < 0;
-    var s = totalSeconds.abs();
+    final s = totalSeconds.abs();
     final h = s ~/ 3600;
     final m = (s % 3600) ~/ 60;
     final sign = negative ? '-' : '';
