@@ -4,11 +4,11 @@ extension UserRoleLabel on UserRole {
   String get label {
     switch (this) {
       case UserRole.employee:
-        return 'Employee';
+        return 'Сотрудник';
       case UserRole.manager:
-        return 'Manager';
+        return 'Менеджер';
       case UserRole.admin:
-        return 'Admin';
+        return 'Администратор';
     }
   }
 }

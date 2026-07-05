@@ -83,7 +83,7 @@ class _TopHeader extends ConsumerWidget {
               ref.read(authControllerProvider.notifier).logout();
               context.go('/login');
             },
-            child: const Text('Logout'),
+            child: const Text('Выйти'),
           ),
         ],
       ),
@@ -171,7 +171,7 @@ class _SidebarNav extends StatelessWidget {
               onPressed: () => context.go(item.path),
             ),
           const Spacer(),
-          const Text('MVP-1 mock prototype',
+          const Text('MVP-1 · демо-прототип',
               style: TextStyle(fontSize: 12, color: AppColors.muted)),
         ],
       ),
@@ -220,20 +220,20 @@ class _NavButton extends StatelessWidget {
 List<_NavItem> _items(UserRole role) {
   if (role == UserRole.admin) {
     return const [
-      _NavItem('Dashboard', '/admin', LucideIcons.layoutDashboard),
-      _NavItem('Users', '/admin/users', LucideIcons.users),
-      _NavItem('Departments', '/admin/departments', LucideIcons.building2),
-      _NavItem('Schedules', '/admin/schedules', LucideIcons.clock),
-      _NavItem('Production Calendar', '/admin/production-calendar',
+      _NavItem('Дашборд', '/admin', LucideIcons.layoutDashboard),
+      _NavItem('Сотрудники', '/admin/users', LucideIcons.users),
+      _NavItem('Отделы', '/admin/departments', LucideIcons.building2),
+      _NavItem('Графики', '/admin/schedules', LucideIcons.clock),
+      _NavItem('Производственный календарь', '/admin/production-calendar',
           LucideIcons.calendarCog),
-      _NavItem('Team', '/team', LucideIcons.briefcaseBusiness),
-      _NavItem('Profile', '/profile', LucideIcons.user),
+      _NavItem('Команда', '/team', LucideIcons.briefcaseBusiness),
+      _NavItem('Профиль', '/profile', LucideIcons.user),
     ];
   }
   return const [
-    _NavItem('Today', '/today', LucideIcons.timer),
-    _NavItem('Calendar', '/calendar', LucideIcons.calendarDays),
-    _NavItem('Team', '/team', LucideIcons.users),
-    _NavItem('Profile', '/profile', LucideIcons.user),
+    _NavItem('Сегодня', '/today', LucideIcons.timer),
+    _NavItem('Календарь', '/calendar', LucideIcons.calendarDays),
+    _NavItem('Команда', '/team', LucideIcons.users),
+    _NavItem('Профиль', '/profile', LucideIcons.user),
   ];
 }

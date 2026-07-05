@@ -2,12 +2,14 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
+import '../../../shared/mock/mock_users.dart';
 import '../../../shared/mock/mock_workday.dart';
 import '../../../shared/theme/app_colors.dart';
 import '../../../shared/theme/app_radius.dart';
 import '../../../shared/theme/app_spacing.dart';
 import '../../../shared/ui/shared_ui.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../auth/domain/app_user.dart';
 import '../../team/domain/employee_status.dart';
 import '../application/today_controller.dart';
 import '../domain/time_event.dart';
@@ -124,21 +126,25 @@ class _TopDashboardGrid extends StatelessWidget {
       onResume: onResume,
       onStop: onStop,
     );
-    const weekCard = _MetricPanel(
+    // Spacer-based bottom alignment needs a bounded height, which only the
+    // wide layout provides (via IntrinsicHeight). The narrow layout stacks
+    // cards inside an unbounded-height scroll view, so it falls back to a
+    // fixed gap instead.
+    final weekCard = _MetricPanel(
       icon: LucideIcons.rotateCcw,
-      iconColor: Color(0xff1f7cae),
+      iconColor: const Color(0xff1f7cae),
       title: 'За неделю',
       value: '36 ч 08 мин',
       suffix: 'из 40 ч',
-      alignValueBottom: true,
+      alignValueBottom: wide,
     );
-    const daysCard = _MetricPanel(
+    final daysCard = _MetricPanel(
       icon: LucideIcons.calendarCheck,
       iconColor: AppColors.statusWorkingText,
       title: 'Рабочих дней',
       value: '18',
       suffix: 'в этом месяце',
-      alignValueBottom: true,
+      alignValueBottom: wide,
     );
     const violationsCard = _MetricPanel(
       icon: LucideIcons.circle,
@@ -172,9 +178,9 @@ class _TopDashboardGrid extends StatelessWidget {
             children: [
               Expanded(flex: 6, child: todayCard),
               const SizedBox(width: AppSpacing.lg),
-              const Expanded(flex: 4, child: weekCard),
+              Expanded(flex: 4, child: weekCard),
               const SizedBox(width: AppSpacing.lg),
-              const Expanded(flex: 4, child: daysCard),
+              Expanded(flex: 4, child: daysCard),
               const SizedBox(width: AppSpacing.lg),
               const Expanded(flex: 4, child: violationsCard),
             ],
@@ -320,41 +326,33 @@ class _TimerActions extends StatelessWidget {
         ),
     };
     final canStop = status == WorkStatus.working || status == WorkStatus.paused;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final twoColumns = constraints.maxWidth >= 360;
-        final buttonWidth = twoColumns
-            ? (constraints.maxWidth - AppSpacing.sm) / 2
-            : constraints.maxWidth;
-        return Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
-          children: [
-            _OutlineActionButton(
-              width: buttonWidth,
-              label: primary.$1,
-              icon: primary.$2,
-              enabled: primary.$1 != 'Недоступно',
-              onPressed: primary.$3,
-            ),
-            _OutlineActionButton(
-              width: buttonWidth,
-              label: 'Завершить день',
-              icon: LucideIcons.square,
-              enabled: canStop,
-              onPressed: onStop,
-              destructive: true,
-            ),
-          ],
-        );
-      },
+    return Row(
+      children: [
+        Expanded(
+          child: _OutlineActionButton(
+            label: primary.$1,
+            icon: primary.$2,
+            enabled: primary.$1 != 'Недоступно',
+            onPressed: primary.$3,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: _OutlineActionButton(
+            label: 'Завершить день',
+            icon: LucideIcons.square,
+            enabled: canStop,
+            onPressed: onStop,
+            destructive: true,
+          ),
+        ),
+      ],
     );
   }
 }
 
 class _OutlineActionButton extends StatelessWidget {
   const _OutlineActionButton({
-    required this.width,
     required this.label,
     required this.icon,
     required this.enabled,
@@ -362,7 +360,6 @@ class _OutlineActionButton extends StatelessWidget {
     this.destructive = false,
   });
 
-  final double width;
   final String label;
   final IconData icon;
   final bool enabled;
@@ -387,17 +384,19 @@ class _OutlineActionButton extends StatelessWidget {
       ],
     );
     return SizedBox(
-      width: width,
+      width: double.infinity,
       height: 36,
       child: destructive
           ? ShadButton.destructive(
               enabled: enabled,
               onPressed: onPressed,
+              expands: true,
               child: content,
             )
           : ShadButton(
               enabled: enabled,
               onPressed: onPressed,
+              expands: true,
               child: content,
             ),
     );
@@ -703,8 +702,8 @@ class _ColleagueRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = _russianName(employee.user.id, employee.user.name);
-    final caption = _departmentCaption(employee.user.id);
+    final name = employee.user.name;
+    final caption = _departmentCaption(employee.user);
     final worked =
         '${employee.actualHours.toStringAsFixed(0)} ч ${((employee.actualHours % 1) * 60).round()} мин';
     final planned = 'из ${employee.plannedHours.toStringAsFixed(0)} ч';
@@ -916,16 +915,7 @@ String _dayPartGreeting() {
 String _firstName(String name) {
   final trimmed = name.trim();
   if (trimmed.isEmpty) return 'Мария';
-  final first = trimmed.split(RegExp(r'\s+')).first;
-  return switch (first.toLowerCase()) {
-    'maria' => 'Мария',
-    'ivan' => 'Иван',
-    'anna' => 'Анна',
-    'alex' => 'Алексей',
-    'manager' => 'Мария',
-    'admin' => 'Мария',
-    _ => first,
-  };
+  return trimmed.split(RegExp(r'\s+')).first;
 }
 
 String _formatRussianDate(DateTime date) {
@@ -1003,20 +993,8 @@ String _initials(String name) {
       .toUpperCase();
 }
 
-String _russianName(String id, String fallback) {
-  return switch (id) {
-    'alex' => 'Алексей Смирнов',
-    'anna' => 'Дмитрий Волков',
-    'ivan' => 'Иван Петров',
-    'maria' => 'Мария Волкова',
-    _ => fallback,
-  };
-}
-
-String _departmentCaption(String id) {
-  return switch (id) {
-    'alex' => 'Отдел продаж · рук.: —',
-    'anna' => 'Отдел продаж · рук.: Алексей Смирнов',
-    _ => 'Отдел продаж · рук.: —',
-  };
+String _departmentCaption(AppUser user) {
+  final managers = mockUsers.where((u) => u.id == user.managerId);
+  final managerName = managers.isEmpty ? '—' : managers.first.name;
+  return '${user.department} · рук.: $managerName';
 }
