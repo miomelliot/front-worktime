@@ -1,33 +1,53 @@
 # Worktime — Flutter frontend
 
 Flutter/Dart client for the `worktime` Go backend (MVP time-tracking service,
-a trimmed-down Zoho People). This repository currently contains the **base
-skeleton**: configuration, HTTP/auth plumbing, shared models, error/loading/
-empty UI primitives, and the full authentication feature (login / register /
-session restore). Product feature screens are added in later iterations.
+a trimmed-down Zoho People). The app includes auth, dashboard, time tracker,
+calendar, organization status, profile, and admin screens for users,
+departments, schedules, absences, and manual corrections.
 
 ## Requirements
 
 - Flutter (latest stable) with Dart (latest stable)
 - Material 3, adaptive for mobile + web/desktop
 
-## Getting started
+## Docker Compose
 
-The skeleton uses code generation (`freezed` + `json_serializable`). The
+The repository can run together with the Go backend placed in `./worktime`.
+The root `compose.yaml` builds:
+
+- `frontend` — Flutter web build served by nginx on `http://localhost:8081`;
+- `app` — Go backend from `./worktime` on `http://localhost:8080`;
+- `postgres`, `kafka`, `kafka-init` — backend dependencies.
+
+Run the full stack:
+
+```bash
+docker compose up --build
+```
+
+Open the app:
+
+```text
+http://localhost:8081
+```
+
+The Flutter image is built with `API_BASE_URL=/api/v1`; nginx proxies `/api/v1`
+and `/swagger` to the backend container, so browser requests stay same-origin.
+
+## Local Flutter Run
+
+The app uses code generation (`freezed` + `json_serializable`). The
 generated `*.freezed.dart` / `*.g.dart` files are **not** committed, so
 generate them after fetching dependencies:
 
 ```bash
-# 1. Create the platform folders (android/ios/web/desktop) into this project
-flutter create .
-
-# 2. Fetch dependencies
+# 1. Fetch dependencies
 flutter pub get
 
-# 3. Generate freezed / json_serializable sources
+# 2. Generate freezed / json_serializable sources
 dart run build_runner build --delete-conflicting-outputs
 
-# 4. Run (point at your backend; base URL must include the /api/v1 prefix)
+# 3. Run (point at your backend; base URL must include the /api/v1 prefix)
 flutter run --dart-define=API_BASE_URL=http://localhost:8080/api/v1
 ```
 

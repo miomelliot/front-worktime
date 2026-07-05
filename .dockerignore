@@ -1,0 +1,13 @@
+.dart_tool/
+.git/
+.idea/
+build/
+android/
+ios/
+linux/
+worktime/
+*.iml
+
+Dockerfile
+compose.yaml
+docker-compose.yml
