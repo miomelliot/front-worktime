@@ -23,19 +23,19 @@ class StatusBadge extends StatelessWidget {
 (Color, Color) _statusColors(WorkStatus status) {
   switch (status) {
     case WorkStatus.working:
-      return (const Color(0xffdcfce7), const Color(0xff166534));
+      return (AppColors.statusWorkingBg, AppColors.statusWorkingText);
     case WorkStatus.paused:
-      return (const Color(0xfffef3c7), AppColors.amber);
+      return (AppColors.statusPausedBg, AppColors.statusPausedText);
     case WorkStatus.notStarted:
-      return (const Color(0xffeef2ff), AppColors.violet);
+      return (AppColors.statusNotStartedBg, AppColors.statusNotStartedText);
     case WorkStatus.stopped:
-      return (const Color(0xffe0f2fe), const Color(0xff075985));
+      return (AppColors.statusStoppedBg, AppColors.statusStoppedText);
     case WorkStatus.dayOff:
-      return (const Color(0xfff1f5f9), const Color(0xff475569));
+      return (AppColors.statusDayOffBg, AppColors.statusDayOffText);
     case WorkStatus.holiday:
-      return (const Color(0xffffe4e6), AppColors.rose);
+      return (AppColors.statusHolidayBg, AppColors.statusHolidayText);
     case WorkStatus.shortened:
-      return (const Color(0xffccfbf1), AppColors.teal);
+      return (AppColors.statusShortenedBg, AppColors.statusShortenedText);
     case WorkStatus.vacationDisplayOnly:
       return (const Color(0xfff3e8ff), AppColors.violet);
     case WorkStatus.sickDisplayOnly:

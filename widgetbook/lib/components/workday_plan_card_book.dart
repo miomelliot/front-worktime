@@ -6,11 +6,13 @@ final workdayPlanCardBook = WidgetbookComponent(
   name: 'WorkdayPlanCard',
   useCases: [
     WidgetbookUseCase.child(
-        name: 'normal workday', child: WorkdayPlanCard(plan: standardPlan())),
+        name: 'обычный день', child: WorkdayPlanCard(plan: standardPlan())),
     WidgetbookUseCase.child(
-        name: 'shortened workday',
+        name: 'сокращенный день',
         child: WorkdayPlanCard(plan: shortenedPlan())),
     WidgetbookUseCase.child(
-        name: 'day off', child: WorkdayPlanCard(plan: dayOffPlan())),
+        name: 'выходной', child: WorkdayPlanCard(plan: dayOffPlan())),
+    WidgetbookUseCase.child(
+        name: 'праздник', child: WorkdayPlanCard(plan: holidayPlan())),
   ],
 );

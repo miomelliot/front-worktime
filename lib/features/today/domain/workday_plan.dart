@@ -7,6 +7,7 @@ class WorkdayPlan {
     required this.breakMinutes,
     this.isDayOff = false,
     this.isShortened = false,
+    this.isHoliday = false,
   });
 
   final DateTime date;
@@ -16,4 +17,5 @@ class WorkdayPlan {
   final int breakMinutes;
   final bool isDayOff;
   final bool isShortened;
+  final bool isHoliday;
 }

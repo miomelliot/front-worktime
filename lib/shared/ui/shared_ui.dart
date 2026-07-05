@@ -12,3 +12,4 @@ export 'status_badge.dart';
 export 'time_event_timeline.dart';
 export 'timer_card.dart';
 export 'workday_plan_card.dart';
+export 'work_progress_card.dart';

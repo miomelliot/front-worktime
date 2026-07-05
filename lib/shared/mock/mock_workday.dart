@@ -39,19 +39,31 @@ WorkdayPlan dayOffPlan([DateTime? date]) {
   );
 }
 
+WorkdayPlan holidayPlan([DateTime? date]) {
+  return WorkdayPlan(
+    date: date ?? mockToday,
+    plannedStart: '-',
+    plannedEnd: '-',
+    expectedHours: 0,
+    breakMinutes: 0,
+    isDayOff: true,
+    isHoliday: true,
+  );
+}
+
 final mockEvents = <TimeEvent>[
   TimeEvent(
       action: 'start',
       time: DateTime.now().copyWith(hour: 9, minute: 4),
-      note: 'Workday started'),
+      note: 'Рабочий день начат'),
   TimeEvent(
       action: 'pause',
       time: DateTime.now().copyWith(hour: 12, minute: 32),
-      note: 'Lunch break'),
+      note: 'Обеденный перерыв'),
   TimeEvent(
       action: 'resume',
       time: DateTime.now().copyWith(hour: 13, minute: 14),
-      note: 'Back online'),
+      note: 'Вернулся к работе'),
 ];
 
 final mockTodaySession = WorkSession(

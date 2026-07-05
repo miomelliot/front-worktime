@@ -3,6 +3,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../theme/app_radius.dart';
 import '../theme/app_spacing.dart';
+import '../theme/app_colors.dart';
 
 class MetricCard extends StatelessWidget {
   const MetricCard({
@@ -31,9 +32,10 @@ class MetricCard extends StatelessWidget {
               height: 40,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(AppRadius.md),
-                color: const Color(0xffeef2ff),
+                color: AppColors.statusNotStartedBg,
               ),
-              child: Icon(icon, size: 20, color: const Color(0xff4338ca)),
+              child:
+                  Icon(icon, size: 20, color: AppColors.statusNotStartedText),
             ),
           if (icon != null) const SizedBox(width: AppSpacing.md),
           Expanded(
@@ -42,7 +44,7 @@ class MetricCard extends StatelessWidget {
               children: [
                 Text(label,
                     style: const TextStyle(
-                        fontSize: 13, color: Color(0xff667085))),
+                        fontSize: 13, color: AppColors.textMuted)),
                 const SizedBox(height: AppSpacing.xs),
                 Text(value,
                     style: const TextStyle(
@@ -50,7 +52,7 @@ class MetricCard extends StatelessWidget {
                 const SizedBox(height: AppSpacing.xs),
                 Text(caption,
                     style: const TextStyle(
-                        fontSize: 12, color: Color(0xff667085))),
+                        fontSize: 12, color: AppColors.textMuted)),
               ],
             ),
           ),

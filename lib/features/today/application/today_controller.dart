@@ -15,10 +15,13 @@ class TodayController extends AsyncNotifier<WorkSession> {
   Future<WorkSession> build() =>
       ref.read(fakeTodayRepositoryProvider).loadToday();
 
-  void start() => _transition(WorkStatus.working, 'start', 'Workday started');
-  void pause() => _transition(WorkStatus.paused, 'pause', 'Paused work');
-  void resume() => _transition(WorkStatus.working, 'resume', 'Resumed work');
-  void stop() => _transition(WorkStatus.stopped, 'stop', 'Workday stopped');
+  void start() =>
+      _transition(WorkStatus.working, 'start', 'Рабочий день начат');
+  void pause() => _transition(WorkStatus.paused, 'pause', 'Пауза в работе');
+  void resume() =>
+      _transition(WorkStatus.working, 'resume', 'Работа возобновлена');
+  void stop() =>
+      _transition(WorkStatus.stopped, 'stop', 'Рабочий день завершен');
 
   void _transition(WorkStatus status, String action, String note) {
     final current = state.value;

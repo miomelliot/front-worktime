@@ -14,23 +14,23 @@ extension WorkStatusLabel on WorkStatus {
   String get label {
     switch (this) {
       case WorkStatus.working:
-        return 'Working';
+        return 'Работает';
       case WorkStatus.paused:
-        return 'Paused';
+        return 'Пауза';
       case WorkStatus.notStarted:
-        return 'Not started';
+        return 'Не начат';
       case WorkStatus.stopped:
-        return 'Stopped';
+        return 'Завершен';
       case WorkStatus.dayOff:
-        return 'Day off';
+        return 'Выходной';
       case WorkStatus.holiday:
-        return 'Holiday';
+        return 'Праздник';
       case WorkStatus.shortened:
-        return 'Shortened';
+        return 'Сокращенный';
       case WorkStatus.vacationDisplayOnly:
-        return 'Vacation';
+        return 'Отпуск';
       case WorkStatus.sickDisplayOnly:
-        return 'Sick leave';
+        return 'Больничный';
     }
   }
 }

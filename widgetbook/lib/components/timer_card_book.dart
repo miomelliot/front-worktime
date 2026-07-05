@@ -5,7 +5,7 @@ import 'package:worktime/shared/ui/timer_card.dart';
 final timerCardBook = WidgetbookComponent(
   name: 'TimerCard',
   useCases: [
-    for (final status in [
+    for (final status in <WorkStatus>[
       WorkStatus.notStarted,
       WorkStatus.working,
       WorkStatus.paused,
@@ -16,7 +16,9 @@ final timerCardBook = WidgetbookComponent(
         name: status.label,
         child: TimerCard(
           status: status,
-          elapsed: const Duration(hours: 4, minutes: 12, seconds: 8),
+          elapsed: status == WorkStatus.notStarted
+              ? Duration.zero
+              : const Duration(hours: 4, minutes: 12, seconds: 8),
           onStart: () {},
           onPause: () {},
           onResume: () {},

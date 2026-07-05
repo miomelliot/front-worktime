@@ -8,6 +8,7 @@ import 'components/employee_status_card_book.dart';
 import 'components/metric_card_book.dart';
 import 'components/status_badge_book.dart';
 import 'components/timer_card_book.dart';
+import 'components/work_progress_card_book.dart';
 import 'components/workday_plan_card_book.dart';
 
 void main() {
@@ -34,6 +35,7 @@ class WorktimeWidgetbook extends StatelessWidget {
             timerCardBook,
             metricCardBook,
             workdayPlanCardBook,
+            workProgressCardBook,
             employeeStatusCardBook,
             calendarDayCellBook,
           ],
