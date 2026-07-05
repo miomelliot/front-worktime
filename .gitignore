@@ -1,0 +1,31 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+pubspec.lock
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Generated code (freezed / json_serializable).
+# Committing generated sources is a valid choice; by default we regenerate
+# them via `dart run build_runner build`. Remove these lines if you prefer to
+# commit the generated files instead.
+*.freezed.dart
+*.g.dart
+
+# OS
+.DS_Store
+
+# Platform folders are created by `flutter create .` (not committed in the
+# skeleton). Uncomment if you generate them and want them ignored:
+# android/
+# ios/
+# linux/
+# macos/
+# windows/
+# web/
