@@ -2,6 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/api/api_client.dart';
 import '../../../shared/api/token_storage.dart';
+import '../../admin/application/admin_controller.dart';
+import '../../calendar/application/calendar_controller.dart';
+import '../../profile/application/profile_controller.dart';
+import '../../team/application/team_controller.dart';
+import '../../today/application/today_controller.dart';
 import '../data/auth_repository.dart';
 import '../domain/app_user.dart';
 
@@ -72,6 +77,16 @@ class AuthController extends Notifier<AppUser?> {
     ref.read(apiClientProvider).setToken(null);
     TokenStorage.clear();
     state = null;
+
+    // Every other controller caches data fetched for whoever was logged in
+    // (team roster, today's session, calendar, profile) and most only
+    // `ref.read` the actor once in their own `build()`, so they wouldn't
+    // otherwise refetch for the next person to log in on this device.
+    ref.invalidate(teamControllerProvider);
+    ref.invalidate(todayControllerProvider);
+    ref.invalidate(calendarControllerProvider);
+    ref.invalidate(profileControllerProvider);
+    ref.invalidate(adminControllerProvider);
   }
 
   void _applySession(String token, AppUser user) {
