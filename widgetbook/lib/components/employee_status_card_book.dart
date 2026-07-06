@@ -9,7 +9,7 @@ final employeeStatusCardBook = WidgetbookComponent(
     for (final employee in mockEmployeeStatuses)
       WidgetbookUseCase.child(
         name: employee.status.label,
-        child: EmployeeStatusCard(employee: employee, onOpen: () {}),
+        child: EmployeeStatusCard(employee: employee),
       ),
   ],
 );

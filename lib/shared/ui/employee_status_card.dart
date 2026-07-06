@@ -8,10 +8,9 @@ import 'role_badge.dart';
 import 'status_badge.dart';
 
 class EmployeeStatusCard extends StatelessWidget {
-  const EmployeeStatusCard({super.key, required this.employee, this.onOpen});
+  const EmployeeStatusCard({super.key, required this.employee});
 
   final EmployeeStatus employee;
-  final VoidCallback? onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -106,15 +105,6 @@ class EmployeeStatusCard extends StatelessWidget {
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          SizedBox(
-            width: double.infinity,
-            child: ShadButton.outline(
-              onPressed: onOpen,
-              trailing: const Icon(LucideIcons.chevronRight, size: 14),
-              child: const Text('Открыть профиль'),
-            ),
           ),
         ],
       ),

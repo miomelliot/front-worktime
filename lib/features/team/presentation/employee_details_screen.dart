@@ -1,10 +1,10 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
-import '../../../shared/mock/mock_workday.dart';
 import '../../../shared/theme/app_spacing.dart';
 import '../../../shared/ui/shared_ui.dart';
-import '../../today/domain/work_status.dart';
 import '../application/team_controller.dart';
 
 class EmployeeDetailsScreen extends ConsumerWidget {
@@ -16,40 +16,72 @@ class EmployeeDetailsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final team = ref.watch(teamControllerProvider);
     return team.when(
-      loading: () => const LoadingState(label: 'Loading employee'),
+      loading: () => const LoadingState(label: 'Загружаем сотрудника'),
       error: (error, stackTrace) => ErrorState(message: '$error'),
       data: (state) {
-        final employee =
-            state.employees.where((item) => item.user.id == userId).firstOrNull;
+        final employee = state.employees
+            .where((item) => item.user.id == userId)
+            .firstOrNull;
         if (employee == null) {
-          return const EmptyState(
-              title: 'Employee not found',
-              message: 'The mock employee list has no matching user.');
+          return const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _BackButton(),
+              SizedBox(height: AppSpacing.lg),
+              EmptyState(
+                title: 'Сотрудник не найден',
+                message: 'В доступном вам списке команды нет такого id.',
+              ),
+            ],
+          );
         }
+        final user = employee.user;
+        final subtitle = [
+          if (user.title?.isNotEmpty ?? false) user.title!,
+          if (user.department != null) user.department!,
+        ].join(' · ');
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const _BackButton(),
+            const SizedBox(height: AppSpacing.lg),
             PageHeader(
-                title: employee.user.name,
-                description:
-                    '${employee.user.title} · ${employee.user.department}'),
+              title: user.name,
+              description: subtitle.isEmpty ? user.email : subtitle,
+            ),
             LayoutBuilder(
               builder: (context, constraints) {
-                final cards = [
+                final wide = constraints.maxWidth > 780;
+                final cards = <Widget>[
                   EmployeeStatusCard(employee: employee),
-                  WorkdayPlanCard(
-                      plan: employee.status == WorkStatus.dayOff
-                          ? dayOffPlan(DateTime.now())
-                          : standardPlan(DateTime.now())),
+                  if (employee.plan != null)
+                    WorkdayPlanCard(plan: employee.plan!)
+                  else
+                    const EmptyState(
+                      title: 'План не задан',
+                      message: 'На сегодня для сотрудника нет графика.',
+                    ),
                   MetricCard(
-                      label: 'Mini summary',
-                      value: '${employee.actualHours.toStringAsFixed(1)}h',
-                      caption: 'Tracked today'),
-                  const EmptyState(title: 'Absences', message: 'Coming later'),
+                    icon: LucideIcons.timer,
+                    label: 'Отработано сегодня',
+                    value: '${employee.actualHours.toStringAsFixed(1)} ч',
+                    caption: employee.plannedHours > 0
+                        ? 'из ${employee.plannedHours.toStringAsFixed(1)} ч по плану'
+                        : employee.lastEvent,
+                  ),
                   const EmptyState(
-                      title: 'Violations', message: 'Coming later'),
+                    title: 'Отсутствия',
+                    message: 'Скоро — история отпусков и больничных.',
+                  ),
                   const EmptyState(
-                      title: 'Corrections', message: 'Coming later'),
+                    title: 'Нарушения',
+                    message: 'Скоро — опоздания и недоработки.',
+                  ),
+                  const EmptyState(
+                    title: 'Корректировки',
+                    message: 'Скоро — ручные правки рабочего времени.',
+                  ),
                 ];
                 return Wrap(
                   spacing: AppSpacing.lg,
@@ -57,10 +89,9 @@ class EmployeeDetailsScreen extends ConsumerWidget {
                   children: [
                     for (final card in cards)
                       SizedBox(
-                          width: constraints.maxWidth > 780
-                              ? 360
-                              : double.infinity,
-                          child: card)
+                        width: wide ? 360 : double.infinity,
+                        child: card,
+                      ),
                   ],
                 );
               },
@@ -68,6 +99,19 @@ class EmployeeDetailsScreen extends ConsumerWidget {
           ],
         );
       },
+    );
+  }
+}
+
+class _BackButton extends StatelessWidget {
+  const _BackButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return ShadButton.ghost(
+      leading: const Icon(LucideIcons.arrowLeft, size: 16),
+      onPressed: () => context.go('/team'),
+      child: const Text('Назад к команде'),
     );
   }
 }

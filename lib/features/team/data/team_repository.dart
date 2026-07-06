@@ -105,8 +105,9 @@ class TeamRepository {
       case 'paused':
         return WorkStatus.paused;
       case 'finished':
-      case 'incomplete':
         return WorkStatus.stopped;
+      case 'incomplete':
+        return WorkStatus.incomplete;
     }
     if (plan?.isDayOff ?? false) return WorkStatus.dayOff;
     return WorkStatus.notStarted;
@@ -122,6 +123,8 @@ class TeamRepository {
         return 'На паузе';
       case WorkStatus.stopped:
         return stoppedAt != null ? 'Завершил в ${_hhmm(stoppedAt)}' : 'Завершил';
+      case WorkStatus.incomplete:
+        return 'Смена не завершена штатно';
       case WorkStatus.dayOff:
         return 'Выходной день';
       default:

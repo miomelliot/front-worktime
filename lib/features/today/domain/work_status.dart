@@ -3,6 +3,10 @@ enum WorkStatus {
   paused,
   notStarted,
   stopped,
+  /// Session ended without a proper stop (e.g. forgot to clock out) — the
+  /// backend's `incomplete` time-tracking status. Distinct from [stopped]
+  /// so it doesn't read as a normally-completed day.
+  incomplete,
   dayOff,
   holiday,
   shortened,
@@ -21,6 +25,8 @@ extension WorkStatusLabel on WorkStatus {
         return 'Не начат';
       case WorkStatus.stopped:
         return 'Завершен';
+      case WorkStatus.incomplete:
+        return 'Не завершен';
       case WorkStatus.dayOff:
         return 'Выходной';
       case WorkStatus.holiday:

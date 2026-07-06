@@ -13,22 +13,23 @@ class AdminUsersScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final team = ref.watch(teamControllerProvider);
     return team.when(
-      loading: () => const LoadingState(label: 'Loading users'),
+      loading: () => const LoadingState(label: 'Загружаем сотрудников'),
       error: (error, stackTrace) => ErrorState(message: '$error'),
       data: (state) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const PageHeader(
-              title: 'Users', description: 'Read-only mock user directory.'),
+              title: 'Сотрудники',
+              description: 'Список пользователей организации.'),
           EmployeeStatusTable(
             employees: state.employees,
             onOpen: (employee) => context.go('/team/${employee.user.id}'),
           ),
           const SizedBox(height: AppSpacing.lg),
           const EmptyState(
-              title: 'CRUD disabled',
+              title: 'Управление отключено',
               message:
-                  'User management actions are intentionally out of scope for MVP-1.'),
+                  'Создание и редактирование пользователей вне рамок MVP-1.'),
         ],
       ),
     );

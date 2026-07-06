@@ -35,6 +35,8 @@ Color statusAccent(WorkStatus status) => _statusColors(status).$2;
       return (AppColors.statusNotStartedBg, AppColors.statusNotStartedText);
     case WorkStatus.stopped:
       return (AppColors.statusStoppedBg, AppColors.statusStoppedText);
+    case WorkStatus.incomplete:
+      return (const Color(0xfffef3c7), AppColors.amber);
     case WorkStatus.dayOff:
       return (AppColors.statusDayOffBg, AppColors.statusDayOffText);
     case WorkStatus.holiday:

@@ -198,6 +198,12 @@ _TimerAction _primaryAction(WorkStatus status) {
         type: _TimerActionType.none,
         enabled: false,
       ),
+    WorkStatus.incomplete => const _TimerAction(
+        label: 'Смена не завершена',
+        icon: LucideIcons.triangleAlert,
+        type: _TimerActionType.none,
+        enabled: false,
+      ),
     WorkStatus.dayOff || WorkStatus.holiday => const _TimerAction(
         label: 'Работа не запланирована',
         icon: LucideIcons.calendarOff,
@@ -250,6 +256,8 @@ String _statusHint(WorkStatus status) {
       'Таймер идет. Можно поставить день на паузу или завершить смену.',
     WorkStatus.paused => 'Рабочее время остановлено до возвращения с перерыва.',
     WorkStatus.stopped => 'Смена закрыта, события дня сохранены в таймлайне.',
+    WorkStatus.incomplete =>
+      'Смена завершилась без штатной остановки — уточните у сотрудника.',
     WorkStatus.dayOff => 'Сегодня выходной, рабочее время не ожидается.',
     WorkStatus.holiday => 'Сегодня праздничный день, действия отключены.',
     WorkStatus.shortened => 'Сегодня сокращенный рабочий день.',
