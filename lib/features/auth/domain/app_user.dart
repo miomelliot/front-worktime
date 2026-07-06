@@ -7,6 +7,7 @@ class AppUser {
     required this.email,
     required this.role,
     this.department,
+    this.departmentId,
     this.managerId,
     this.title,
     this.status = 'active',
@@ -25,6 +26,11 @@ class AppUser {
   /// unknown, e.g. on a user's own `/users/me` response, which carries no
   /// department at all.
   final String? department;
+
+  /// Raw `department_id` — used to match "same department" between users
+  /// (e.g. for the Today tab's colleagues card) without relying on
+  /// [department] name lookups being available.
+  final String? departmentId;
   final String? managerId;
 
   /// Backend calls this "position" — kept as `title` since that's what the
@@ -46,6 +52,7 @@ class AppUser {
         avatarUrl: json['avatar_url'] as String?,
         timezone: json['timezone'] as String? ?? 'Europe/Moscow',
         managerId: json['manager_id'] as String?,
+        departmentId: json['department_id'] as String?,
       );
 
   /// Round-trips through [fromProfileJson] — used to cache the session in
@@ -60,5 +67,6 @@ class AppUser {
         if (title != null) 'position': title,
         if (avatarUrl != null) 'avatar_url': avatarUrl,
         if (managerId != null) 'manager_id': managerId,
+        if (departmentId != null) 'department_id': departmentId,
       };
 }

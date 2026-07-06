@@ -7,13 +7,9 @@ import '../../today/domain/workday_plan.dart';
 import '../domain/department.dart';
 import '../domain/employee_status.dart';
 
-/// Backs the Team tab with the real API. What a caller can see is dictated
-/// entirely by their role:
-///  - admin: `GET /users` (global roster, no department per user)
-///  - manager: `GET /managers/{own id}/team` — their direct reports
-///  - employee: `GET /managers/{their manager's id}/team` — their peers
-///    under the same manager (the backend allows this: `ListTeam` treats
-///    "you report to this manager too" the same as "you are this manager")
+/// Backs the Team tab with the real API. Every role sees the full company
+/// roster via `GET /users` — there's no per-manager scoping, so someone
+/// without a manager on record still shows up for everyone else.
 class TeamRepository {
   const TeamRepository(this._client);
 
@@ -27,41 +23,18 @@ class TeamRepository {
         .toList();
   }
 
-  /// Null return means "this role has no team-listing capability" — distinct
-  /// from an empty list (a manager with zero reports). [departments]
-  /// resolves each report's `department_id` to a name for a manager's team;
-  /// pass whatever `loadDepartments()` already returned to avoid refetching.
-  Future<List<EmployeeStatus>?> loadRoster(
-    AppUser actor,
+  /// [departments] resolves each member's `department_id` to a name; pass
+  /// whatever `loadDepartments()` already returned to avoid refetching.
+  Future<List<EmployeeStatus>> loadRoster(
     List<Department> departments,
   ) async {
     final departmentNames = {for (final d in departments) d.id: d.name};
 
-    final List<AppUser> members;
-    switch (actor.role) {
-      case UserRole.admin:
-        final json = await _client.get('/users');
-        members = (json as List)
-            .cast<Map<String, dynamic>>()
-            .map(AppUser.fromProfileJson)
-            .toList();
-      case UserRole.manager:
-        final json = await _client.get('/managers/${actor.id}/team');
-        members = (json as List)
-            .cast<Map<String, dynamic>>()
-            .map((row) => _fromOrganizationJson(row, departmentNames))
-            .toList();
-      case UserRole.employee:
-        // No manager on record at all (e.g. a top-level admin's report
-        // with nobody assigned yet) — genuinely nothing to show, distinct
-        // from an empty team.
-        if (actor.managerId == null) return null;
-        final json = await _client.get('/managers/${actor.managerId}/team');
-        members = (json as List)
-            .cast<Map<String, dynamic>>()
-            .map((row) => _fromOrganizationJson(row, departmentNames))
-            .toList();
-    }
+    final json = await _client.get('/users');
+    final members = (json as List)
+        .cast<Map<String, dynamic>>()
+        .map((row) => _fromOrganizationJson(row, departmentNames))
+        .toList();
 
     return Future.wait(members.map(_statusFor));
   }
@@ -124,6 +97,7 @@ class TeamRepository {
       role: UserRole.fromApi(json['role'] as String),
       status: json['status'] as String? ?? 'active',
       department: departmentNames[json['department_id']],
+      departmentId: json['department_id'] as String?,
       managerId: json['manager_id'] as String?,
     );
   }

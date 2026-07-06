@@ -20,25 +20,6 @@ class TeamScreen extends ConsumerWidget {
       loading: () => const LoadingState(label: 'Загружаем команду'),
       error: (error, stackTrace) => ErrorState(message: '$error'),
       data: (state) {
-        if (state.restricted) {
-          return const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              PageHeader(
-                title: 'Команда',
-                description:
-                    'Кто сейчас работает — статусы и часы по отделам.',
-              ),
-              EmptyState(
-                title: 'Директория недоступна',
-                message:
-                    'Для вашей учётной записи не назначен руководитель, '
-                    'поэтому команду показать нечего — обратитесь к '
-                    'администратору.',
-              ),
-            ],
-          );
-        }
         final controller = ref.read(teamControllerProvider.notifier);
         final filtered = state.filtered;
         return Column(

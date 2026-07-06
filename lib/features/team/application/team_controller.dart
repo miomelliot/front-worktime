@@ -20,7 +20,8 @@ class TeamState {
   const TeamState({
     required this.employees,
     required this.departments,
-    this.restricted = false,
+    this.viewerId,
+    this.viewerDepartmentId,
     this.query = '',
     this.department = teamFilterAll,
     this.status = teamFilterAll,
@@ -30,11 +31,11 @@ class TeamState {
   final List<EmployeeStatus> employees;
   final List<Department> departments;
 
-  /// True when the signed-in role has no team-listing capability at all
-  /// (plain employees — the backend only exposes rosters to managers and
-  /// admins). Distinct from an empty [employees] list, which just means
-  /// "no reports yet".
-  final bool restricted;
+  /// The signed-in user's own id/department — not affected by filters.
+  /// Used to derive "my department colleagues" (e.g. for the Today tab's
+  /// colleagues card) from the full [employees] roster.
+  final String? viewerId;
+  final String? viewerDepartmentId;
   final String query;
   final String department;
   final String status;
@@ -62,6 +63,19 @@ class TeamState {
   /// ordered like [departments] with any unlisted name appended after.
   List<String> get availableDepartments =>
       _orderedDepartmentNames(employees, departments);
+
+  /// Other employees sharing the viewer's department, unaffected by the
+  /// search/status/department filters below. Empty when the viewer has no
+  /// department on record — there's no "colleagues" group to show then.
+  List<EmployeeStatus> get departmentColleagues {
+    final departmentId = viewerDepartmentId;
+    if (departmentId == null) return const [];
+    return employees
+        .where((employee) =>
+            employee.user.departmentId == departmentId &&
+            employee.user.id != viewerId)
+        .toList();
+  }
 
   List<EmployeeStatus> get filtered {
     return employees.where((employee) {
@@ -97,7 +111,8 @@ class TeamState {
     return TeamState(
       employees: employees,
       departments: departments,
-      restricted: restricted,
+      viewerId: viewerId,
+      viewerDepartmentId: viewerDepartmentId,
       query: query ?? this.query,
       department: department ?? this.department,
       status: status ?? this.status,
@@ -138,11 +153,12 @@ class TeamController extends AsyncNotifier<TeamState> {
 
     final repository = ref.read(teamRepositoryProvider);
     final departments = await repository.loadDepartments();
-    final roster = await repository.loadRoster(actor, departments);
+    final roster = await repository.loadRoster(departments);
     return TeamState(
-      employees: roster ?? const [],
+      employees: roster,
       departments: departments,
-      restricted: roster == null,
+      viewerId: actor.id,
+      viewerDepartmentId: actor.departmentId,
     );
   }
 
@@ -155,7 +171,8 @@ class TeamController extends AsyncNotifier<TeamState> {
   void resetFilters() => _update((state) => TeamState(
         employees: state.employees,
         departments: state.departments,
-        restricted: state.restricted,
+        viewerId: state.viewerId,
+        viewerDepartmentId: state.viewerDepartmentId,
         filtersEpoch: state.filtersEpoch + 1,
       ));
 

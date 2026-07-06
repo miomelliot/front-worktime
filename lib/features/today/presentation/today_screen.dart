@@ -671,7 +671,11 @@ class _DepartmentCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final team = ref.watch(teamControllerProvider);
-    final colleagues = team.value?.employees.take(2).toList() ?? const [];
+    final state = team.value;
+    if (state == null || state.viewerDepartmentId == null) {
+      return const SizedBox.shrink();
+    }
+    final colleagues = state.departmentColleagues.take(2).toList();
     return DashboardCard(
       padding: EdgeInsets.zero,
       child: Column(
@@ -681,9 +685,8 @@ class _DepartmentCard extends ConsumerWidget {
             const Padding(
               padding: EdgeInsets.all(AppSpacing.xl),
               child: EmptyState(
-                title: 'Коллеги недоступны',
-                message: 'Директория команды видна руководителям и '
-                    'администраторам.',
+                title: 'В отделе больше никого нет',
+                message: 'Пока вы единственный сотрудник в своём отделе.',
               ),
             )
           else
