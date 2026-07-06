@@ -8,11 +8,12 @@ import '../domain/department.dart';
 import '../domain/employee_status.dart';
 
 /// Backs the Team tab with the real API. What a caller can see is dictated
-/// entirely by their role — there is no single "list everyone" endpoint
-/// available to a plain employee:
+/// entirely by their role:
 ///  - admin: `GET /users` (global roster, no department per user)
-///  - manager: `GET /managers/{id}/team` (direct reports, with department_id)
-///  - employee: nothing — the backend has no team-listing endpoint for them
+///  - manager: `GET /managers/{own id}/team` — their direct reports
+///  - employee: `GET /managers/{their manager's id}/team` — their peers
+///    under the same manager (the backend allows this: `ListTeam` treats
+///    "you report to this manager too" the same as "you are this manager")
 class TeamRepository {
   const TeamRepository(this._client);
 
@@ -51,7 +52,15 @@ class TeamRepository {
             .map((row) => _fromOrganizationJson(row, departmentNames))
             .toList();
       case UserRole.employee:
-        return null;
+        // No manager on record at all (e.g. a top-level admin's report
+        // with nobody assigned yet) — genuinely nothing to show, distinct
+        // from an empty team.
+        if (actor.managerId == null) return null;
+        final json = await _client.get('/managers/${actor.managerId}/team');
+        members = (json as List)
+            .cast<Map<String, dynamic>>()
+            .map((row) => _fromOrganizationJson(row, departmentNames))
+            .toList();
     }
 
     return Future.wait(members.map(_statusFor));

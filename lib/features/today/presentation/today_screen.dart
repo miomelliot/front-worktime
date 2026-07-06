@@ -225,8 +225,17 @@ class _TimerActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primary = switch (status) {
-      WorkStatus.notStarted || WorkStatus.shortened => (
-          'Начать день',
+      // Starting again after finish/incomplete is allowed — e.g. someone
+      // misclicked "завершить" and still needs to work. It's the same
+      // action as a fresh start, so it gets the same label: the backend
+      // carries forward the hours already logged today rather than
+      // resetting them, so nothing is actually lost.
+      WorkStatus.notStarted ||
+      WorkStatus.shortened ||
+      WorkStatus.stopped ||
+      WorkStatus.incomplete =>
+        (
+          'Старт',
           LucideIcons.play,
           onStart,
         ),
@@ -260,7 +269,7 @@ class _TimerActions extends StatelessWidget {
         const SizedBox(width: AppSpacing.sm),
         Expanded(
           child: _OutlineActionButton(
-            label: 'Завершить день',
+            label: 'Завершить',
             icon: LucideIcons.square,
             enabled: canStop,
             onPressed: onStop,
@@ -392,7 +401,8 @@ class _StatsRowData extends StatelessWidget {
         accent: AppColors.brand,
         title: 'За неделю',
         value: _formatShort(Duration(seconds: stats.weeklyWorkedSeconds)),
-        suffix: 'из ${_formatShort(Duration(seconds: stats.weeklyExpectedSeconds))}',
+        suffix:
+            'из ${_formatShort(Duration(seconds: stats.weeklyExpectedSeconds))}',
       ),
       StatTile(
         icon: LucideIcons.calendarCheck,

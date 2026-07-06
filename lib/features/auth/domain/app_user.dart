@@ -45,5 +45,20 @@ class AppUser {
         status: json['status'] as String? ?? 'active',
         avatarUrl: json['avatar_url'] as String?,
         timezone: json['timezone'] as String? ?? 'Europe/Moscow',
+        managerId: json['manager_id'] as String?,
       );
+
+  /// Round-trips through [fromProfileJson] — used to cache the session in
+  /// local storage so it survives a browser restart.
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'email': email,
+        'full_name': name,
+        'role': role.name,
+        'status': status,
+        'timezone': timezone,
+        if (title != null) 'position': title,
+        if (avatarUrl != null) 'avatar_url': avatarUrl,
+        if (managerId != null) 'manager_id': managerId,
+      };
 }

@@ -48,6 +48,8 @@ class ApiClient {
 
   String? _token;
 
+  String? get token => _token;
+
   void setToken(String? token) => _token = token;
 
   Future<dynamic> get(String path, {Map<String, String>? query}) =>
