@@ -3,13 +3,14 @@ import '../../../shared/api/time_tracking_helpers.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_role.dart';
 import '../../today/domain/work_status.dart';
-import '../../today/domain/workday_plan.dart';
 import '../domain/department.dart';
 import '../domain/employee_status.dart';
 
 /// Backs the Team tab with the real API. Every role sees the full company
 /// roster via `GET /users` — there's no per-manager scoping, so someone
-/// without a manager on record still shows up for everyone else.
+/// without a manager on record still shows up for everyone else. Each
+/// member's status (not hours — see [_statusFor]) comes from their own
+/// `/time-tracking/session`.
 class TeamRepository {
   const TeamRepository(this._client);
 
@@ -39,31 +40,25 @@ class TeamRepository {
     return Future.wait(members.map(_statusFor));
   }
 
+  /// Status only — no hours. The full company roster is visible to every
+  /// role now, but planned/worked hours stay a team-scoped concept (fetching
+  /// `/users/{id}/workday-plans` for someone outside your own team/reports
+  /// isn't permitted), so this intentionally skips that call and leaves
+  /// [EmployeeStatus.plannedHours]/[EmployeeStatus.actualHours] at zero —
+  /// `EmployeeStatusTile`/`EmployeeStatusTable` already hide the hours bar
+  /// when `plannedHours <= 0`.
   Future<EmployeeStatus> _statusFor(AppUser user) async {
     final today = DateTime.now();
-    final results = await Future.wait([
-      fetchSession(_client, user.id, today),
-      _client.get('/users/${user.id}/workday-plans'),
-    ]);
-
-    final session = results[0] as Map<String, dynamic>?;
-    final plans = (results[1] as List).cast<Map<String, dynamic>>();
-    final planJson = plans.firstWhereOrNull(
-      (p) => sameDate(DateTime.parse(p['work_date'] as String), today),
-    );
-    final plan = planJson != null ? WorkdayPlan.fromJson(planJson) : null;
-
-    final status =
-        workStatusFromSession(session, isDayOff: plan?.isDayOff ?? false);
-    final workedSeconds = (session?['worked_seconds'] as num?) ?? 0;
+    final session = await fetchSession(_client, user.id, today);
+    final status = workStatusFromSession(session, isDayOff: false);
 
     return EmployeeStatus(
       user: user,
       status: status,
-      plannedHours: plan?.expectedHours ?? 0,
-      actualHours: workedSeconds / 3600.0,
+      plannedHours: 0,
+      actualHours: 0,
       lastEvent: _lastEvent(session, status),
-      plan: plan,
+      plan: null,
     );
   }
 
