@@ -8,50 +8,64 @@ import '../../../shared/api/api_client.dart';
 import '../../../shared/theme/app_colors.dart';
 import '../../../shared/theme/app_spacing.dart';
 import '../application/auth_controller.dart';
-import '../domain/user_role.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _RegisterScreenState extends State<RegisterScreen> {
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmController = TextEditingController();
   bool _submitting = false;
   String? _error;
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmController.dispose();
     super.dispose();
   }
 
   Future<void> _submit(WidgetRef ref) async {
+    final name = _nameController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text;
-    if (email.isEmpty || password.isEmpty) {
-      setState(() => _error = 'Введите почту и пароль.');
+    final confirm = _confirmController.text;
+
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
+      setState(() => _error = 'Заполните имя, почту и пароль.');
       return;
     }
+    if (password.length < 8) {
+      setState(() => _error = 'Пароль должен быть не короче 8 символов.');
+      return;
+    }
+    if (password != confirm) {
+      setState(() => _error = 'Пароли не совпадают.');
+      return;
+    }
+
     setState(() {
       _submitting = true;
       _error = null;
     });
     try {
-      await ref
-          .read(authControllerProvider.notifier)
-          .login(email: email, password: password);
+      await ref.read(authControllerProvider.notifier).register(
+            email: email,
+            password: password,
+            fullName: name,
+          );
       if (!mounted) return;
-      final role = ref.read(authControllerProvider)?.role;
-      context.go(role == UserRole.admin ? '/admin' : '/today');
+      context.go('/today');
     } on ApiException catch (e) {
-      setState(() => _error = e.isUnauthorized
-          ? 'Неверная почта или пароль.'
-          : e.message);
+      setState(() => _error = e.message);
     } catch (e) {
       setState(() => _error = 'Не удалось подключиться к серверу: $e');
     } finally {
@@ -64,8 +78,8 @@ class _LoginScreenState extends State<LoginScreen> {
     return Consumer(
       builder: (context, ref, _) {
         final formCard = ShadCard(
-          title: const Text('Вход в систему'),
-          description: const Text('Войдите со своей учётной записью Worktime.'),
+          title: const Text('Регистрация'),
+          description: const Text('Создайте учётную запись Worktime.'),
           child: Padding(
             padding: const EdgeInsets.only(top: AppSpacing.lg),
             child: AutofillGroup(
@@ -73,21 +87,33 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   ShadInput(
+                    controller: _nameController,
+                    placeholder: const Text('Полное имя'),
+                    autofillHints: const [AutofillHints.name],
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  ShadInput(
                     controller: _emailController,
                     placeholder: const Text('Эл. почта'),
                     keyboardType: TextInputType.emailAddress,
                     autofillHints: const [
-                      AutofillHints.username,
+                      AutofillHints.newUsername,
                       AutofillHints.email,
                     ],
-                    onSubmitted: (_) => _submit(ref),
                   ),
                   const SizedBox(height: AppSpacing.md),
                   ShadInput(
                     controller: _passwordController,
-                    placeholder: const Text('Пароль'),
+                    placeholder: const Text('Пароль (от 8 символов)'),
                     obscureText: true,
-                    autofillHints: const [AutofillHints.password],
+                    autofillHints: const [AutofillHints.newPassword],
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  ShadInput(
+                    controller: _confirmController,
+                    placeholder: const Text('Повторите пароль'),
+                    obscureText: true,
+                    autofillHints: const [AutofillHints.newPassword],
                     onSubmitted: (_) => _submit(ref),
                   ),
                   if (_error != null) ...[
@@ -109,21 +135,14 @@ class _LoginScreenState extends State<LoginScreen> {
                             height: 16,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text('Войти'),
+                        : const Text('Зарегистрироваться'),
                   ),
                   const SizedBox(height: AppSpacing.md),
                   ShadButton.ghost(
                     enabled: !_submitting,
-                    onPressed: () => context.go('/register'),
+                    onPressed: () => context.go('/login'),
                     expands: true,
-                    child: const Text('Нет аккаунта? Зарегистрироваться'),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  ShadButton.secondary(
-                    enabled: false,
-                    onPressed: () {},
-                    expands: true,
-                    child: const Text('Вход через SSO — скоро'),
+                    child: const Text('Уже есть аккаунт? Войти'),
                   ),
                 ],
               ),
@@ -144,7 +163,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const _LoginCopy(),
+                            const _RegisterCopy(),
                             const SizedBox(height: AppSpacing.xxl),
                             formCard,
                           ],
@@ -153,7 +172,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       return Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Expanded(child: _LoginCopy()),
+                          const Expanded(child: _RegisterCopy()),
                           const SizedBox(width: AppSpacing.xxl),
                           Expanded(child: formCard),
                         ],
@@ -170,8 +189,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-class _LoginCopy extends StatelessWidget {
-  const _LoginCopy();
+class _RegisterCopy extends StatelessWidget {
+  const _RegisterCopy();
 
   @override
   Widget build(BuildContext context) {
@@ -183,8 +202,8 @@ class _LoginCopy extends StatelessWidget {
             style: TextStyle(fontSize: 48, fontWeight: FontWeight.w900)),
         SizedBox(height: AppSpacing.md),
         Text(
-          'Веб-прототип учёта рабочего времени, статусов команды, '
-          'календаря и настроек администратора.',
+          'Новые учётные записи создаются с ролью «Сотрудник» — '
+          'доступ менеджера или администратора выдаёт администратор позже.',
           style: TextStyle(fontSize: 18, color: AppColors.muted, height: 1.45),
         ),
       ],

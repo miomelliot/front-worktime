@@ -10,6 +10,7 @@ import '../features/admin/presentation/admin_users_screen.dart';
 import '../features/auth/application/auth_controller.dart';
 import '../features/auth/domain/user_role.dart';
 import '../features/auth/presentation/login_screen.dart';
+import '../features/auth/presentation/register_screen.dart';
 import '../features/calendar/presentation/calendar_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
 import '../features/team/presentation/employee_details_screen.dart';
@@ -37,13 +38,17 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: authRefresh,
     redirect: (context, state) {
       final user = ref.read(authControllerProvider);
-      final isLogin = state.matchedLocation == '/login';
-      if (user == null) return isLogin ? null : '/login';
-      if (isLogin) return user.role == UserRole.admin ? '/admin' : '/today';
+      final isAuthRoute = state.matchedLocation == '/login' ||
+          state.matchedLocation == '/register';
+      if (user == null) return isAuthRoute ? null : '/login';
+      if (isAuthRoute) return user.role == UserRole.admin ? '/admin' : '/today';
       return null;
     },
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(
+          path: '/register',
+          builder: (context, state) => const RegisterScreen()),
       ShellRoute(
         builder: (context, state, child) => AppShell(child: child),
         routes: [

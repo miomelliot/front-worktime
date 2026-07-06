@@ -14,6 +14,27 @@ enum WorkStatus {
   sickDisplayOnly,
 }
 
+/// Maps a `GET /time-tracking/session` response (null when the backend
+/// 404s — no session started yet) to a [WorkStatus]. Shared by the Today
+/// and Team features so a "working"/"paused"/etc. session always reads the
+/// same way everywhere.
+WorkStatus workStatusFromSession(
+  Map<String, dynamic>? session, {
+  required bool isDayOff,
+}) {
+  switch (session?['status'] as String?) {
+    case 'working':
+      return WorkStatus.working;
+    case 'paused':
+      return WorkStatus.paused;
+    case 'finished':
+      return WorkStatus.stopped;
+    case 'incomplete':
+      return WorkStatus.incomplete;
+  }
+  return isDayOff ? WorkStatus.dayOff : WorkStatus.notStarted;
+}
+
 extension WorkStatusLabel on WorkStatus {
   String get label {
     switch (this) {

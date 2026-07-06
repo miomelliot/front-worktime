@@ -2,15 +2,15 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
-import '../../../shared/mock/mock_users.dart';
-import '../../../shared/mock/mock_workday.dart';
 import '../../../shared/theme/app_colors.dart';
 import '../../../shared/theme/app_spacing.dart';
 import '../../../shared/ui/shared_ui.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/app_user.dart';
+import '../../team/application/team_controller.dart';
 import '../../team/domain/employee_status.dart';
 import '../application/today_controller.dart';
+import '../data/today_repository.dart';
 import '../domain/time_event.dart';
 import '../domain/work_session.dart';
 import '../domain/work_status.dart';
@@ -327,30 +327,81 @@ class _OutlineActionButton extends StatelessWidget {
 /// Three at-a-glance numbers below the hero card. Every tile shares one
 /// structure (icon chip, label, value) so they always line up without
 /// needing height hacks.
-class _StatsRow extends StatelessWidget {
+class _StatsRow extends ConsumerWidget {
   const _StatsRow({required this.wide});
 
   final bool wide;
 
   @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stats = ref.watch(todayStatsProvider);
+    return stats.when(
+      loading: () => _StatsRowSkeleton(wide: wide),
+      error: (error, stackTrace) => _StatsRowSkeleton(wide: wide),
+      data: (stats) => _StatsRowData(wide: wide, stats: stats),
+    );
+  }
+}
+
+class _StatsRowSkeleton extends StatelessWidget {
+  const _StatsRowSkeleton({required this.wide});
+
+  final bool wide;
+
+  @override
   Widget build(BuildContext context) {
-    const violationsCount = 0;
-    final tiles = [
-      const StatTile(
+    final tiles = const [
+      StatTile(
         icon: LucideIcons.rotateCcw,
         accent: AppColors.brand,
         title: 'За неделю',
-        value: '36 ч 08 мин',
-        suffix: 'из 40 ч',
+        value: '—',
+        suffix: '',
       ),
-      const StatTile(
+      StatTile(
         icon: LucideIcons.calendarCheck,
         accent: AppColors.statusWorkingText,
         title: 'Рабочих дней',
-        value: '18',
+        value: '—',
+        suffix: '',
+      ),
+      StatTile(
+        icon: LucideIcons.shieldCheck,
+        accent: AppColors.muted,
+        title: 'Мои нарушения',
+        value: '—',
+        suffix: '',
+      ),
+    ];
+    return _StatsRowLayout(wide: wide, tiles: tiles);
+  }
+}
+
+class _StatsRowData extends StatelessWidget {
+  const _StatsRowData({required this.wide, required this.stats});
+
+  final bool wide;
+  final TodayStats stats;
+
+  @override
+  Widget build(BuildContext context) {
+    final violationsCount = stats.openViolations;
+    final tiles = [
+      StatTile(
+        icon: LucideIcons.rotateCcw,
+        accent: AppColors.brand,
+        title: 'За неделю',
+        value: _formatShort(Duration(seconds: stats.weeklyWorkedSeconds)),
+        suffix: 'из ${_formatShort(Duration(seconds: stats.weeklyExpectedSeconds))}',
+      ),
+      StatTile(
+        icon: LucideIcons.calendarCheck,
+        accent: AppColors.statusWorkingText,
+        title: 'Рабочих дней',
+        value: '${stats.workDaysThisMonth}',
         suffix: 'в этом месяце',
       ),
-      const StatTile(
+      StatTile(
         icon: violationsCount == 0
             ? LucideIcons.shieldCheck
             : LucideIcons.triangleAlert,
@@ -361,7 +412,18 @@ class _StatsRow extends StatelessWidget {
         suffix: violationsCount == 0 ? 'нет открытых' : 'открыто',
       ),
     ];
+    return _StatsRowLayout(wide: wide, tiles: tiles);
+  }
+}
 
+class _StatsRowLayout extends StatelessWidget {
+  const _StatsRowLayout({required this.wide, required this.tiles});
+
+  final bool wide;
+  final List<Widget> tiles;
+
+  @override
+  Widget build(BuildContext context) {
     if (!wide) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -593,26 +655,37 @@ class _ScheduleRow extends StatelessWidget {
   }
 }
 
-class _DepartmentCard extends StatelessWidget {
+class _DepartmentCard extends ConsumerWidget {
   const _DepartmentCard();
 
   @override
-  Widget build(BuildContext context) {
-    final colleagues = mockEmployeeStatuses.take(2).toList();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final team = ref.watch(teamControllerProvider);
+    final colleagues = team.value?.employees.take(2).toList() ?? const [];
     return DashboardCard(
       padding: EdgeInsets.zero,
       child: Column(
         children: [
           const SectionHeader(icon: LucideIcons.users, title: 'Коллеги отдела'),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-            child: Column(
-              children: [
-                for (final colleague in colleagues)
-                  _ColleagueRow(employee: colleague),
-              ],
+          if (colleagues.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(AppSpacing.xl),
+              child: EmptyState(
+                title: 'Коллеги недоступны',
+                message: 'Директория команды видна руководителям и '
+                    'администраторам.',
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+              child: Column(
+                children: [
+                  for (final colleague in colleagues)
+                    _ColleagueRow(employee: colleague),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -797,7 +870,7 @@ String _initials(String name) {
 }
 
 String _departmentCaption(AppUser user) {
-  final managers = mockUsers.where((u) => u.id == user.managerId);
-  final managerName = managers.isEmpty ? '—' : managers.first.name;
-  return '${user.department} · рук.: $managerName';
+  final department = user.department ?? 'Без отдела';
+  if (user.title?.isNotEmpty ?? false) return '$department · ${user.title}';
+  return department;
 }

@@ -27,6 +27,20 @@ class AuthController extends Notifier<AppUser?> {
     state = session.user;
   }
 
+  Future<void> register({
+    required String email,
+    required String password,
+    required String fullName,
+  }) async {
+    final session = await ref.read(authRepositoryProvider).register(
+          email: email,
+          password: password,
+          fullName: fullName,
+        );
+    ref.read(apiClientProvider).setToken(session.accessToken);
+    state = session.user;
+  }
+
   void setUser(AppUser user) => state = user;
 
   void logout() {
