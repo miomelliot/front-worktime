@@ -46,6 +46,11 @@ final calendarControllerProvider =
 class CalendarController extends AsyncNotifier<CalendarState> {
   @override
   Future<CalendarState> build() async {
+    // Watched (but not read again below — `_loadMonth`/`_withEventsFor` use
+    // `ref.read` since they're also called from user-driven methods outside
+    // `build()`) so switching users on the same device refetches instead of
+    // leaving the previous user's calendar cached.
+    ref.watch(authControllerProvider);
     final now = DateTime.now();
     final days = await _loadMonth(now);
     final state = CalendarState(focusedMonth: now, selectedDay: now, days: days);

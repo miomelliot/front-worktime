@@ -41,7 +41,10 @@ class TodayController extends AsyncNotifier<WorkSession> {
   }
 
   Future<WorkSession> _load() async {
-    final userId = ref.read(authControllerProvider)?.id;
+    // Watched (not read) so logging out/in as someone else on the same
+    // device re-runs `build()` instead of leaving the previous user's
+    // session cached until an unrelated rebuild happens to occur.
+    final userId = ref.watch(authControllerProvider)?.id;
     if (userId == null) {
       throw StateError('Не авторизован');
     }

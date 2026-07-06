@@ -13,7 +13,16 @@ final profileControllerProvider =
 
 class ProfileController extends AsyncNotifier<AppUser> {
   @override
-  Future<AppUser> build() => ref.read(profileRepositoryProvider).me();
+  Future<AppUser> build() {
+    // Watched so switching users on the same device refetches instead of
+    // leaving the previous user's profile cached; guards against firing an
+    // unauthenticated `/users/me` request (which would 401 and immediately
+    // re-trigger `logout()`) during the brief moment after logging out.
+    if (ref.watch(authControllerProvider) == null) {
+      throw StateError('Не авторизован');
+    }
+    return ref.read(profileRepositoryProvider).me();
+  }
 
   Future<void> updateProfile({
     required String fullName,

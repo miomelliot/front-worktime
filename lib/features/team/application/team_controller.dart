@@ -148,7 +148,10 @@ final teamControllerProvider =
 class TeamController extends AsyncNotifier<TeamState> {
   @override
   Future<TeamState> build() async {
-    final actor = ref.read(authControllerProvider);
+    // Watched so switching users on the same device (logout → login as
+    // someone else) re-fetches instead of leaving the previous user's
+    // roster cached.
+    final actor = ref.watch(authControllerProvider);
     if (actor == null) return const TeamState(employees: [], departments: []);
 
     final repository = ref.read(teamRepositoryProvider);
