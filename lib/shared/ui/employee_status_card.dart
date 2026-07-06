@@ -65,7 +65,7 @@ class EmployeeStatusCard extends StatelessWidget {
             runSpacing: AppSpacing.xs,
             children: [
               RoleBadge(role: user.role),
-              ShadBadge.outline(child: Text(user.department)),
+              ShadBadge.outline(child: Text(user.department ?? '—')),
             ],
           ),
           const SizedBox(height: AppSpacing.md),

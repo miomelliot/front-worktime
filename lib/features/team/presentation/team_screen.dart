@@ -20,49 +20,65 @@ class TeamScreen extends ConsumerWidget {
       loading: () => const LoadingState(label: 'Загружаем команду'),
       error: (error, stackTrace) => ErrorState(message: '$error'),
       data: (state) {
+        if (state.restricted) {
+          return const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              PageHeader(
+                title: 'Команда',
+                description:
+                    'Кто сейчас работает — статусы и часы по отделам.',
+              ),
+              EmptyState(
+                title: 'Директория недоступна',
+                message:
+                    'Список команды виден только руководителям и '
+                    'администраторам — для вашей роли API его не отдаёт.',
+              ),
+            ],
+          );
+        }
         final controller = ref.read(teamControllerProvider.notifier);
         final filtered = state.filtered;
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final wide = constraints.maxWidth >= 980;
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const PageHeader(
-                  title: 'Команда',
-                  description:
-                      'Кто сейчас работает — статусы и часы по отделам.',
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const PageHeader(
+              title: 'Команда',
+              description: 'Кто сейчас работает — статусы и часы по отделам.',
+            ),
+            // Scoped to just the stat tiles (not the whole screen) — a
+            // LayoutBuilder wrapping the ShadInput search field below would
+            // race with GoRouter's navigation on tile tap and crash with
+            // "_debugRelayoutBoundaryAlreadyMarkedNeedsLayout" when the
+            // EditableText gets torn down mid-layout-callback.
+            LayoutBuilder(
+              builder: (context, constraints) => _StatsRow(
+                employees: state.employees,
+                wide: constraints.maxWidth >= 980,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            _FiltersBar(state: state, controller: controller),
+            const SizedBox(height: AppSpacing.lg),
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.md),
+              child: Text(
+                'Показано ${filtered.length} из ${state.employees.length}',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: ShadTheme.of(context).colorScheme.mutedForeground,
                 ),
-                _StatsRow(employees: state.employees, wide: wide),
-                const SizedBox(height: AppSpacing.xl),
-                _FiltersBar(state: state, controller: controller),
-                const SizedBox(height: AppSpacing.lg),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                  child: Text(
-                    'Показано ${filtered.length} из ${state.employees.length}',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: ShadTheme.of(context).colorScheme.mutedForeground,
-                    ),
-                  ),
-                ),
-                if (filtered.isEmpty)
-                  const EmptyState(
-                    title: 'Никого не найдено',
-                    message:
-                        'Попробуйте изменить поиск или сбросить фильтры.',
-                  )
-                else if (wide)
-                  EmployeeStatusTable(
-                    employees: filtered,
-                    onOpen: (employee) => context.go('/team/${employee.user.id}'),
-                  )
-                else
-                  _CardGrid(employees: filtered, maxWidth: constraints.maxWidth),
-              ],
-            );
-          },
+              ),
+            ),
+            if (filtered.isEmpty)
+              const EmptyState(
+                title: 'Никого не найдено',
+                message: 'Попробуйте изменить поиск или сбросить фильтры.',
+              )
+            else
+              _DepartmentGroups(groups: state.filteredByDepartment),
+          ],
         );
       },
     );
@@ -147,10 +163,7 @@ class _FiltersBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final departmentOptions = [
-      teamFilterAll,
-      ...state.departments.map((department) => department.name),
-    ];
+    final departmentOptions = [teamFilterAll, ...state.availableDepartments];
     final statusOptions = [teamFilterAll, ...state.availableStatuses];
 
     return DashboardCard(
@@ -228,29 +241,76 @@ class _FilterSelect extends StatelessWidget {
   }
 }
 
-class _CardGrid extends StatelessWidget {
-  const _CardGrid({required this.employees, required this.maxWidth});
+class _DepartmentGroups extends StatelessWidget {
+  const _DepartmentGroups({required this.groups});
 
-  final List<EmployeeStatus> employees;
-  final double maxWidth;
+  final List<TeamDepartmentGroup> groups;
 
   @override
   Widget build(BuildContext context) {
-    final columns = maxWidth >= 640 ? 2 : 1;
-    final cardWidth =
-        columns == 1 ? maxWidth : (maxWidth - AppSpacing.lg) / columns;
-    return Wrap(
-      spacing: AppSpacing.lg,
-      runSpacing: AppSpacing.lg,
+    // A lone "Без отдела" bucket means department just isn't resolvable for
+    // this viewer's role (e.g. an admin's global user list) rather than a
+    // real grouping choice — showing that as a heading would be misleading.
+    final showHeaders = groups.length > 1 ||
+        (groups.isNotEmpty && groups.first.name != 'Без отдела');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final employee in employees)
-          SizedBox(
-            width: cardWidth,
-            child: EmployeeStatusCard(
-              employee: employee,
-              onOpen: () => context.go('/team/${employee.user.id}'),
-            ),
+        for (var i = 0; i < groups.length; i++) ...[
+          if (i > 0) const SizedBox(height: AppSpacing.xl),
+          _DepartmentGroupSection(group: groups[i], showHeader: showHeaders),
+        ],
+      ],
+    );
+  }
+}
+
+class _DepartmentGroupSection extends StatelessWidget {
+  const _DepartmentGroupSection({required this.group, required this.showHeader});
+
+  final TeamDepartmentGroup group;
+  final bool showHeader;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = ShadTheme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (showHeader) ...[
+          Row(
+            children: [
+              Text(
+                group.name,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: colors.foreground,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Text(
+                '· ${group.employees.length}',
+                style: TextStyle(fontSize: 13, color: colors.mutedForeground),
+              ),
+            ],
           ),
+          const SizedBox(height: AppSpacing.sm),
+        ],
+        Wrap(
+          spacing: AppSpacing.md,
+          runSpacing: AppSpacing.md,
+          children: [
+            for (final employee in group.employees)
+              SizedBox(
+                width: 220,
+                child: EmployeeStatusTile(
+                  employee: employee,
+                  onTap: () => context.go('/team/${employee.user.id}'),
+                ),
+              ),
+          ],
+        ),
       ],
     );
   }

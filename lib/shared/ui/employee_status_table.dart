@@ -98,16 +98,16 @@ class _EmployeeRowState extends State<_EmployeeRow> {
       child: GestureDetector(
         onTap: widget.onTap,
         child: Container(
-          color: _hovered ? colors.muted : null,
           padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.lg, vertical: AppSpacing.md),
-          decoration: widget.isLast
-              ? null
-              : BoxDecoration(
-                  border: Border(
-                      bottom: BorderSide(
-                          color: colors.border.withValues(alpha: 0.6))),
-                ),
+          decoration: BoxDecoration(
+            color: _hovered ? colors.muted : null,
+            border: widget.isLast
+                ? null
+                : Border(
+                    bottom: BorderSide(
+                        color: colors.border.withValues(alpha: 0.6))),
+          ),
           child: Row(
             children: [
               Expanded(
@@ -146,7 +146,7 @@ class _EmployeeRowState extends State<_EmployeeRow> {
               Expanded(
                 flex: 2,
                 child: Text(
-                  user.department,
+                  user.department ?? '—',
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: colors.foreground, fontSize: 13),
                 ),

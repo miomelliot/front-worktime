@@ -1,16 +1,26 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../shared/api/api_client.dart';
+import '../../auth/application/auth_controller.dart';
 import '../../today/domain/work_status.dart';
-import '../data/fake_team_repository.dart';
+import '../data/team_repository.dart';
 import '../domain/department.dart';
 import '../domain/employee_status.dart';
 
 const teamFilterAll = 'Все';
 
+class TeamDepartmentGroup {
+  const TeamDepartmentGroup({required this.name, required this.employees});
+
+  final String name;
+  final List<EmployeeStatus> employees;
+}
+
 class TeamState {
   const TeamState({
     required this.employees,
     required this.departments,
+    this.restricted = false,
     this.query = '',
     this.department = teamFilterAll,
     this.status = teamFilterAll,
@@ -19,6 +29,12 @@ class TeamState {
 
   final List<EmployeeStatus> employees;
   final List<Department> departments;
+
+  /// True when the signed-in role has no team-listing capability at all
+  /// (plain employees — the backend only exposes rosters to managers and
+  /// admins). Distinct from an empty [employees] list, which just means
+  /// "no reports yet".
+  final bool restricted;
   final String query;
   final String department;
   final String status;
@@ -41,6 +57,12 @@ class TeamState {
       .map((value) => value.label)
       .toList();
 
+  /// Distinct department names actually present among [employees] (not
+  /// [filtered] — the option list shouldn't shrink as soon as you pick one),
+  /// ordered like [departments] with any unlisted name appended after.
+  List<String> get availableDepartments =>
+      _orderedDepartmentNames(employees, departments);
+
   List<EmployeeStatus> get filtered {
     return employees.where((employee) {
       final q = query.trim().toLowerCase();
@@ -55,10 +77,27 @@ class TeamState {
     }).toList();
   }
 
+  /// [filtered] employees bucketed by department, ordered like
+  /// [departments] with any department that has no entry there (e.g. an
+  /// admin's own department) appended after, in first-seen order.
+  List<TeamDepartmentGroup> get filteredByDepartment {
+    final byDepartment = <String, List<EmployeeStatus>>{};
+    for (final employee in filtered) {
+      final department = employee.user.department ?? 'Без отдела';
+      (byDepartment[department] ??= []).add(employee);
+    }
+    final order = _orderedDepartmentNames(filtered, departments);
+    return [
+      for (final name in order)
+        TeamDepartmentGroup(name: name, employees: byDepartment[name]!),
+    ];
+  }
+
   TeamState copyWith({String? query, String? department, String? status}) {
     return TeamState(
       employees: employees,
       departments: departments,
+      restricted: restricted,
       query: query ?? this.query,
       department: department ?? this.department,
       status: status ?? this.status,
@@ -67,7 +106,26 @@ class TeamState {
   }
 }
 
-final fakeTeamRepositoryProvider = Provider((ref) => FakeTeamRepository());
+/// Names of departments actually represented in [source], ordered like
+/// [departments] with any unlisted name (e.g. a bucket only reachable
+/// through a role that can't resolve department names) appended after.
+List<String> _orderedDepartmentNames(
+  List<EmployeeStatus> source,
+  List<Department> departments,
+) {
+  final present = <String>{
+    for (final employee in source) employee.user.department ?? 'Без отдела',
+  };
+  return [
+    for (final d in departments)
+      if (present.contains(d.name)) d.name,
+    for (final name in present)
+      if (!departments.any((d) => d.name == name)) name,
+  ];
+}
+
+final teamRepositoryProvider =
+    Provider((ref) => TeamRepository(ref.watch(apiClientProvider)));
 
 final teamControllerProvider =
     AsyncNotifierProvider<TeamController, TeamState>(TeamController.new);
@@ -75,10 +133,16 @@ final teamControllerProvider =
 class TeamController extends AsyncNotifier<TeamState> {
   @override
   Future<TeamState> build() async {
-    final repository = ref.read(fakeTeamRepositoryProvider);
+    final actor = ref.read(authControllerProvider);
+    if (actor == null) return const TeamState(employees: [], departments: []);
+
+    final repository = ref.read(teamRepositoryProvider);
+    final departments = await repository.loadDepartments();
+    final roster = await repository.loadRoster(actor, departments);
     return TeamState(
-      employees: await repository.loadEmployees(),
-      departments: await repository.loadDepartments(),
+      employees: roster ?? const [],
+      departments: departments,
+      restricted: roster == null,
     );
   }
 
@@ -91,6 +155,7 @@ class TeamController extends AsyncNotifier<TeamState> {
   void resetFilters() => _update((state) => TeamState(
         employees: state.employees,
         departments: state.departments,
+        restricted: state.restricted,
         filtersEpoch: state.filtersEpoch + 1,
       ));
 

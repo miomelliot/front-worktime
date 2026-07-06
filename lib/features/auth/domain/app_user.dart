@@ -6,16 +6,44 @@ class AppUser {
     required this.name,
     required this.email,
     required this.role,
-    required this.department,
+    this.department,
     this.managerId,
-    this.title = 'Team member',
+    this.title,
+    this.status = 'active',
+    this.avatarUrl,
+    this.timezone = 'Europe/Moscow',
   });
 
   final String id;
   final String name;
   final String email;
   final UserRole role;
-  final String department;
+
+  /// Department *name* — only resolvable where the backend exposes a
+  /// `department_id` (team-listing/org endpoints) and the caller has
+  /// separately looked up the name via `GET /departments`. Null when
+  /// unknown, e.g. on a user's own `/users/me` response, which carries no
+  /// department at all.
+  final String? department;
   final String? managerId;
-  final String title;
+
+  /// Backend calls this "position" — kept as `title` since that's what the
+  /// UI already reads everywhere.
+  final String? title;
+  final String status;
+  final String? avatarUrl;
+  final String timezone;
+
+  /// Parses the `UserProfile` shape returned by `/auth/me`, `/users/me`,
+  /// `/users/{id}` and the login response's `user` field.
+  factory AppUser.fromProfileJson(Map<String, dynamic> json) => AppUser(
+        id: json['id'] as String,
+        name: json['full_name'] as String,
+        email: json['email'] as String,
+        role: UserRole.fromApi(json['role'] as String),
+        title: json['position'] as String?,
+        status: json['status'] as String? ?? 'active',
+        avatarUrl: json['avatar_url'] as String?,
+        timezone: json['timezone'] as String? ?? 'Europe/Moscow',
+      );
 }

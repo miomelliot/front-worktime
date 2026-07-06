@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -16,11 +17,26 @@ import '../features/team/presentation/team_screen.dart';
 import '../features/today/presentation/today_screen.dart';
 import 'app_shell.dart';
 
+/// Notifies GoRouter to re-run [GoRouter.redirect] whenever the auth state
+/// changes, without recreating the router itself. [routerProvider] used to
+/// `ref.watch(authControllerProvider)` directly, which rebuilt a brand new
+/// `GoRouter` (resetting it to `initialLocation`) on *any* auth-state
+/// change — including saving your own profile, which bounced you from
+/// `/profile` back to `/today` since the fresh router re-evaluates
+/// `redirect` against `/login`.
+class _AuthRefreshListenable extends ChangeNotifier {
+  _AuthRefreshListenable(Ref ref) {
+    ref.listen(authControllerProvider, (_, __) => notifyListeners());
+  }
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
-  final user = ref.watch(authControllerProvider);
+  final authRefresh = _AuthRefreshListenable(ref);
   return GoRouter(
     initialLocation: '/login',
+    refreshListenable: authRefresh,
     redirect: (context, state) {
+      final user = ref.read(authControllerProvider);
       final isLogin = state.matchedLocation == '/login';
       if (user == null) return isLogin ? null : '/login';
       if (isLogin) return user.role == UserRole.admin ? '/admin' : '/today';

@@ -3,6 +3,7 @@ export 'confirm_dialog.dart';
 export 'dashboard_card.dart';
 export 'employee_status_card.dart';
 export 'employee_status_table.dart';
+export 'employee_status_tile.dart';
 export 'empty_state.dart';
 export 'error_state.dart';
 export 'initials_avatar.dart';
